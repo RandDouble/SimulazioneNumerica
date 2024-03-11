@@ -1,0 +1,6 @@
+lib
+.vscode
+.ipynb_checkpoints
+**/obj
+*.dat
+*.exe
