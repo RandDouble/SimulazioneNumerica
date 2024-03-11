@@ -15,6 +15,10 @@ SRC= $(addprefix $(SOURCE_DIR), $(SRC_FILES))
 OBJ= $(addprefix $(OBJ_DIR)/,$(addsuffix .o , $(basename $(SRC_FILES))))
 SRC += $(LOCAL_SRC_FILE)
 OBJ += $(addsuffix .o , $(basename $(LOCAL_SRC_FILE)))
+
+.PHONY: all
+all : $(PROGNAME)
+
 $(PROGNAME): $(MAIN) $(OBJ)
 	$(CXX) -o $@ $(CXXFLAGS) $^ 
 

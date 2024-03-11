@@ -19,8 +19,11 @@ int main()
     const int n_throws = 1000; // Number of throws per block
     const int n_seciton = 20;
     Random rng;
-    std::vector possible_pi(n_blocks, 0.); // It should inferre that is a vector of doubles
     initializer(rng);
+    
+    std::vector possible_pi(n_blocks, 0.); // It should inferre that is a vector of doubles
+    std::vector pi_blocks(n_blocks, values{0.,0.});
+
     Buffon buffon(needle_lenght, grid_spacing, n_seciton, &rng);
 
     std::cout << "starting calculation\n";
@@ -30,5 +33,25 @@ int main()
         pies = buffon.compute_pi();
         std::cout << pies << "\n";
     }
+
+    auto vec_begin = possible_pi.begin();
+    for (int i = 0; i < n_blocks; i++)
+    {
+        pi_blocks[i].value = calc_mean(vec_begin, vec_begin + i);
+        pi_blocks[i].error = calc_std(vec_begin, vec_begin + i);
+    }
+
+    std::ofstream fout("buffon.csv");
+    if (!fout)
+    {
+        std::cerr << "Could not open buffon.csv\nExiting\n";
+        exit(1);
+    }
+
+    for (auto &el : pi_blocks)
+    {
+        fout << el << "\n";
+    }
+    fout.close();
     return 0;
 }
