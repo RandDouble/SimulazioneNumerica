@@ -8,8 +8,21 @@ double Buffon::starting_position()
 
 double Buffon::ending_position(double start_pos)
 {
-    double theta = m_rng->Rannyu(0, std::numeric_limits<double>::max());
-    double end_x = start_pos + m_L * std::cos(theta);
+    double x = 0., y = 0., norm = 0.;
+
+    // Search if unit cirle a random vector, with accept reject
+    do
+    {
+        x = m_rng->Rannyu(-1, 1);
+        y = m_rng->Rannyu(-1, 1);
+        norm = std::hypot(x, y);
+    } while (norm > 1.);
+    x /= norm;
+
+    // double theta = m_rng->Rannyu(0, std::numeric_limits<double>::max());
+    // x = std::cos(theta);
+
+    double end_x = start_pos + m_L * x;
     return end_x;
 }
 

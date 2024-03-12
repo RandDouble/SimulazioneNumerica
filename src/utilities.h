@@ -36,4 +36,5 @@ double calc_mean(std::vector<double>::iterator begin, std::vector<double>::itera
 double calc_std(std::vector<double> &v_el);
 double calc_std(std::vector<double>::iterator begin, std::vector<double>::iterator end);
 
+
 #endif // __UTILITIES__
