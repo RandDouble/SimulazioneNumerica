@@ -8,11 +8,6 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 *****************************************************************
 *****************************************************************/
 
-#include <iostream>
-#include <fstream>
-#include <cmath>
-#include <cstdlib>
-#include <cassert>
 #include "random.h"
 
 using namespace std;
@@ -111,6 +106,19 @@ double Random::Lorenztian(double x_0, double gamma)
    double y = Rannyu();
    double r = gamma * std::tan(M_PI * (y - 0.5)) + x_0;
    return r;
+}
+
+double Random::AcceptReject(const double a, const double b, const double max, std::function<double(double)> PDF)
+{
+   double x = 0, y = 0;
+
+   do
+   {
+      x = Rannyu(a, b);
+      y = Rannyu(0, max);
+   } while (PDF(x) < y);
+
+   return x;
 }
 
 /****************************************************************

@@ -1,70 +1,122 @@
 #include "monte_carlo.h"
 
-values MonteCarlo::calculate_uniform(const double a, const double b, std::function<double(double)> integrand)
+double MonteCarlo::calculate_uniform(const double a, const double b, std::function<double(double)> integrand)
 {
-    std::vector<double> v_single_block(m_n_block);
+    // Element of single block
+    double single_block = 0.;
 
-    for (auto &single_block : v_single_block)
+    for (unsigned int i = 1; i <= m_launch_size; i++)
     {
-        for (unsigned int i = 0; i < m_launch_size; i++)
-        {
-            single_block += (integrand(m_rng->Rannyu(a, b)) / m_launch_size); // Calcolo Media singolo blocco
-        }
-        single_block *= (b - a); // Calcolo Integrale, <f(x)>_a^b * (b-a)
+        double new_element = integrand(m_rng->Rannyu(a, b));
+        single_block = (single_block * (i - 1) + new_element) / i; // Incremental Average to reduce error due to overflow
     }
 
-    values val{calc_mean(v_single_block), calc_std(v_single_block)};
-    return val;
+    single_block *= (b - a); // Calcolo Integrale, <f(x)>_a^b * (b-a)
+
+    return single_block;
 }
 
-values MonteCarlo::calculate_uniform(const double a, const double b, const unsigned int total_throws, std::function<double(double)> integrand)
+double MonteCarlo::calculate_uniform(const double a, const double b, const unsigned int throws, std::function<double(double)> integrand)
 {
-    std::vector<double> v_single_block(m_n_block);
+    double single_block = 0.;
 
-    unsigned int launch_size = total_throws / m_n_block;
-
-    for (auto &single_block : v_single_block)
+    for (unsigned int i = 1; i <= throws; i++)
     {
-        for (unsigned int i = 0; i < launch_size; i++)
-        {
-            single_block += (integrand(m_rng->Rannyu(a, b)) / launch_size); // Calcolo Media singolo blocco
-        }
-        single_block *= (b - a); // Calcolo Integrale, <f(x)>_a^b * (b-a)
+        double new_element = integrand(m_rng->Rannyu(a, b));
+        single_block = (single_block * (i - 1) + new_element) / i; // Incremental Average to reduce error due to overflow
     }
+    single_block *= (b - a); // Calcolo Integrale, <f(x)>_a^b * (b-a)
 
-    values val{calc_mean(v_single_block), calc_std(v_single_block)};
-
-    return val;
+    return single_block;
 }
 
-std::vector<values> MonteCarlo::calculate_uniform_step(const double a, const double b, const unsigned int block_size, unsigned int total_throws, std::function<double(double)> integrand)
+std::vector<values> MonteCarlo::calculate_uniform_blocks(const double a, const double b, const unsigned int block_size, std::function<double(double)> integrand)
 {
-    if (total_throws % block_size != 0)
+    std::vector v_values(m_n_block, 0.);
+    std::vector v_blocks(m_n_block, values{0., 0.});
+
+    for (auto &value : v_values)
     {
-        std::cout << "Rescaling total_throws to be a multiple of block_size\n";
-        total_throws -= total_throws % block_size;
+        value = calculate_uniform(a, b, block_size, integrand);
     }
 
-    m_n_block = total_throws / block_size;
-    // Container for integral values computed in a single block
-    std::vector<double> v_single_integral(m_n_block);
+    auto begin = v_values.begin();
 
-    // Container for integral values computed with associated error
-    std::vector<values> v_single_block_error(m_n_block);
-
-    for (auto &single_integral : v_single_integral)
+    for (unsigned int i = 0; i < m_n_block; i++)
     {
-        for (std::size_t i = 1; i <= block_size; i++)
-        {
-            single_integral = (single_integral * (i - 1) + (integrand(m_rng->Rannyu(a, b)))) / i; // Incremental Mean to reduce truncation error
-        }
-        single_integral *= (b - a); // Now we have an integral
+        v_blocks[i] = values{calc_mean(begin, begin + i), calc_std(begin, begin + i)};
     }
 
-    auto single_integral_beginning = v_single_integral.begin();
-    for (std::size_t i = 0; i < m_n_block; ++i)
+    return v_blocks;
+}
+
+double MonteCarlo::calculate_distribution_convert(const double a, const double b, const unsigned int throws, std::function<double(double)> integrand, std::function<double(double)> inverse_cumulative)
+{
+    double single_block = 0.;
+
+    for (unsigned int i = 1; i <= throws; i++)
     {
-        v_single_block_error[i] = {calc_mean(single_integral_beginning, single_integral_beginning + i), calc_std(single_integral_beginning, single_integral_beginning + i)};
+        double new_element = integrand(inverse_cumulative(m_rng->Rannyu(a, b)));
+        single_block = (single_block * (i - 1) + new_element) / i; // Incremental Average to reduce error due to overflow
+
     }
-    return v_single_block_error;
+    single_block *= (b - a); // Calcolo Integrale, <f(x)>_a^b * (b-a)
+
+    return single_block;
+    ;
+}
+
+double MonteCarlo::calculate_distribution_rng(const double a, const double b, const unsigned int throws, std::function<double(double)> integrand, std::function<double(void)> ext_rng)
+{
+    double single_block = 0.;
+
+    for (unsigned int i = 1; i <= throws; i++)
+    {
+        double new_element = integrand(ext_rng());
+        single_block = (single_block * (i - 1) + new_element) / i; // Incremental Average to reduce error due to overflow
+    }
+    single_block *= (b - a); // Calcolo Integrale, <f(x)>_a^b * (b-a)
+
+    return single_block;
+    ;
+}
+
+std::vector<values> MonteCarlo::calculate_dist_conv_block(const double a, const double b, const unsigned int block_size, std::function<double(double)> integrand, std::function<double(double)> inverse_cumulative)
+{
+    std::vector v_values(m_n_block, 0.);
+    std::vector v_blocks(m_n_block, values{0., 0.});
+
+    for (auto &value : v_values)
+    {
+        value = calculate_distribution_convert(a, b, block_size, integrand, inverse_cumulative);
+    }
+
+    auto begin = v_values.begin();
+
+    for (unsigned int i = 0; i < m_n_block; i++)
+    {
+        v_blocks[i] = values{calc_mean(begin, begin + i), calc_std(begin, begin + i)};
+    }
+
+    return v_blocks;
+}
+
+std::vector<values> MonteCarlo::calculate_dist_rng_block(const double a, const double b, const unsigned int block_size, std::function<double(double)> integrand, std::function<double(void)> ext_rng)
+{
+    std::vector v_values(m_n_block, 0.);
+    std::vector v_blocks(m_n_block, values{0., 0.});
+
+    for (auto &value : v_values)
+    {
+        value = calculate_distribution_rng(a, b, block_size, integrand, ext_rng);
+    }
+
+    auto begin = v_values.begin();
+
+    for (unsigned int i = 0; i < m_n_block; i++)
+    {
+        v_blocks[i] = values{calc_mean(begin, begin + i), calc_std(begin, begin + i)};
+    }
+
+    return v_blocks;
 }

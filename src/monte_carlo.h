@@ -27,11 +27,50 @@ public:
 
     inline void set_rng(Random *rng) { m_rng = rng; }
 
-    values calculate_uniform(const double a, const double b, std::function<double(double)> integrand);
-    values calculate_uniform(const double a, const double b, const unsigned int total_throws, std::function<double(double)> integrand);
-    std::vector<values> calculate_uniform_step(const double a, const double b, const unsigned int block_size, unsigned int total_throws, std::function<double(double)> integrand);
-    std::vector<values> calculate_distribution(const double a, const double b, const unsigned int block_size, unsigned int total_throws, std::function<double(double)> integrand, std::function<double(double)> inverse_cumulative);
-    std::vector<values> calculate_integral_general(const double a, const double b, const unsigned int block_size, unsigned total_throws, std::function<double(double)> integrand, std::function<double(void)> ext_rng);
+    /// @brief Calculate integral using average method, number of throws is default
+    /// @param a inferior bound
+    /// @param b superior bound
+    /// @param integrand function to be integrated
+    /// @return integral value
+    double calculate_uniform(const double a, const double b, std::function<double(double)> integrand);
+    
+    /// @brief Calculate integral using average method
+    /// @param a inferior buond
+    /// @param b superior bound
+    /// @param throws nr of extraction from random number generator 
+    /// @param integrand function to be integrated
+    /// @return integral value
+    double calculate_uniform(const double a, const double b, const unsigned int total_throws, std::function<double(double)> integrand);
+
+
+    /// @brief Return Block Means using average method uniform sampling, number of blocks is a setting in class
+    /// @param a inferior bound
+    /// @param b superior bound
+    /// @param block_size nr of extraction per block
+    /// @param integrand function to be integrated
+    /// @return collection of value of integral with error
+    std::vector<values> calculate_uniform_blocks(const double a, const double b, const unsigned int block_size, std::function<double(double)> integrand);
+    
+    double calculate_distribution_convert(const double a, const double b, const unsigned int throws, std::function<double(double)> integrand, std::function<double(double)> inverse_cumulative);
+    double calculate_distribution_rng(const double a, const double b, const unsigned int throws, std::function<double(double)> integrand, std::function<double(void)> ext_rng);
+    
+    /// @brief Return Block Means using inverse cumulative sampling, number of blocks is a setting in class
+    /// @param a inferior bound
+    /// @param b superior bound
+    /// @param block_size nr of extraction per block 
+    /// @param integrand function to be integrated
+    /// @param inverse_cumulative inverse cumulative supplied to random number generator to extract values
+    /// @return collection of values of integral with error
+    std::vector<values> calculate_dist_conv_block(const double a, const double b, const unsigned int block_size, std::function<double(double)> integrand, std::function<double(double)> inverse_cumulative);
+    
+    /// @brief Return Block Means using supplied random number generator, number of blocks is a setting in class
+    /// @param a inferior bound
+    /// @param b superior bpund
+    /// @param block_size nr of extraction per block
+    /// @param integrand function to be integrated
+    /// @param ext_rng external random number generator for sampling
+    /// @return collection of values of integral with error
+    std::vector<values> calculate_dist_rng_block(const double a, const double b, const unsigned int block_size, std::function<double(double)> integrand, std::function<double(void)> ext_rng);
     // double calculate_cumulative(const double a, const double b, std::function<double(double)> integrand, std::function<double(double)> cumulative);
 };
 

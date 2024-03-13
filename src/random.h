@@ -11,6 +11,13 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #ifndef __Random__
 #define __Random__
 
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <cstdlib>
+#include <cassert>
+#include <functional>
+
 // This class contains functions for generating random numbers using the RANNYU algorithm
 class Random {
 
@@ -38,6 +45,8 @@ public:
   double Exponential(double lambda);
   // Method to generate a random number with a Lorentian distribution
   double Lorenztian(double x_0, double gamma);
+  // Method Accept Reject for extreme case
+  double AcceptReject(const double a,const double b,const double max, std::function<double(double)> PDF);
 };
 
 #endif // __Random__

@@ -1,5 +1,5 @@
-PROGNAME= main_2_1.exe
-MAIN= main_2_1.cpp 
+PROGNAME= main_2_2.exe
+MAIN= main_2_2.cpp 
 SRC_FILES = random.cpp monte_carlo.cpp utilities.cpp
 # LOCAL_SRC_FILE = buffon.cpp
 # Compiler and compiler flags
