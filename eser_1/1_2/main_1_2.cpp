@@ -29,7 +29,7 @@ int main()
     {
         for (auto &el : container)
         {
-
+            // S_N = sum(x_i) / N, N in {1, 2 , 10 , 100}
             for (int i = 0; i < iter; i++)
             {
                 el += std::floor(std::fmod(rng.Rannyu() * std::pow(6, 3), 6)) + 1.;

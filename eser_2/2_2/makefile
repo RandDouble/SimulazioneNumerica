@@ -1,6 +1,6 @@
 PROGNAME= main_2_2.exe
 MAIN= main_2_2.cpp 
-SRC_FILES = random.cpp utilities.cpp random_walk.cpp
+SRC_FILES = random.cpp utilities.cpp random_walk.cpp vector3D.cpp
 # LOCAL_SRC_FILE = buffon.cpp
 # Compiler and compiler flags
 CXX=clang++-17 # Only because it support c++20 needed for other projects

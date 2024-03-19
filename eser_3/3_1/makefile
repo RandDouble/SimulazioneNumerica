@@ -1,7 +1,10 @@
+# @author: Stefano Pilosio
+# @scope: Laboratorio di Simulazione Numerica 2023 / 2024
+
 PROGNAME= main_3_1.exe
 MAIN= main_3_1.cpp 
 SRC_FILES = random.cpp monte_carlo.cpp utilities.cpp
-# LOCAL_SRC_FILE = buffon.cpp
+LOCAL_SRC_FILE = finanza.cpp
 # Compiler and compiler flags
 CXX=clang++-17 # Only because it support c++20 needed for other projects
 INCFLAGS= -I../../src

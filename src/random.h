@@ -47,6 +47,8 @@ public:
   double Lorenztian(double x_0, double gamma);
   // Method Accept Reject for extreme case
   double AcceptReject(const double a,const double b,const double max, std::function<double(double)> PDF);
+  // Method with inverse cumulative
+  double ExternalInvCum(std::function<double(double)> ICDF);
 };
 
 #endif // __Random__

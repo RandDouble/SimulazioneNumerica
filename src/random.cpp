@@ -121,6 +121,11 @@ double Random::AcceptReject(const double a, const double b, const double max, st
    return x;
 }
 
+double Random::ExternalInvCum(std::function<double(double)> ICDF)
+{
+   return ICDF(Rannyu());
+}
+
 /****************************************************************
 *****************************************************************
     _/    _/  _/_/_/  _/       Numerical Simulation Laboratory
