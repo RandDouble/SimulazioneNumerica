@@ -36,5 +36,22 @@ double calc_mean(std::vector<double>::iterator begin, std::vector<double>::itera
 double calc_std(std::vector<double> &v_el);
 double calc_std(std::vector<double>::iterator begin, std::vector<double>::iterator end);
 
+template <typename T>
+void print_file(std::ostream &os, const std::vector<T> &vec)
+{
+    for (auto &&i : vec)
+    {
+        os << i << "\n";
+    }
+}
+
+template <typename T>
+void print(const std::vector<T> &vec)
+{
+    for (auto &&i : vec)
+    {
+        std::cout << i << "\n";
+    }
+}
 
 #endif // __UTILITIES__

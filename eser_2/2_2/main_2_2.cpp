@@ -22,14 +22,15 @@ int main()
     initializer(rng);
     Random_Walk walker(1., {0., 0., 0.}, &rng);
 
-    // constexpr unsigned int n_repetition = 10000;
     constexpr unsigned int n_time_steps = 100;
+    constexpr unsigned int n_runs = 10000;
 
 
     // Point 1
         
-
-    std::ofstream f_off("random_walk_lattice.csv");
+    // Vogliamo visualizzazioni fighe per vedere se tutto funziona
+    std::ofstream
+     f_off("random_walk_lattice.csv");
 
     f_off << "x,y,z\n";
     for (size_t i = 0; i < n_time_steps; i++)
@@ -39,7 +40,8 @@ int main()
     }
 
     f_off.close();
-    
+
+    // Vogliamo visualizzazioni fighe per vedere se tutto funziona
     f_off.open("random_walk_continuos.csv");
     walker.reset();
     for (size_t i = 0; i < n_time_steps; i++)
@@ -47,8 +49,32 @@ int main()
         walker.continuos_single_walk();
         f_off << walker.get_actual_pos() << "\n";
     }
-    
-
     f_off.close();
+
+    // Adesso facciamo il vero punto.
+    std::vector res(n_runs, 0.);
+    for (size_t i = 0; i < n_runs; i++)
+    {
+        walker.reset();
+        walker.discrete_walk(n_time_steps);
+        res[i] = walker.get_distance_squared_from_origin();
+    }
+
+    f_off.open("result_lattice.csv");
+    print_file(f_off, res);
+    f_off.close();
+
+    for (size_t i = 0; i < n_runs; i++)
+    {
+        walker.reset();
+        walker.continuos_walk(n_time_steps);
+        res[i] = walker.get_distance_squared_from_origin();
+    }
+
+    f_off.open("result_continuos.csv");
+    print_file(f_off, res);
+    f_off.close();
+
+
     return 0;
 }

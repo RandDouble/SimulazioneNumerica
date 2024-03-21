@@ -23,8 +23,8 @@ public:
     void reset() { m_actual_pos = m_start_pos; }
     void set_start_pos(Vector3D pos) { m_start_pos = pos; }
 
-    double get_distance_from_origint() const { return m_actual_pos.distance(m_start_pos); }
-    double get_distance_squared_from_origint() const { return m_actual_pos.distance_squared(m_start_pos); }
+    double get_distance_from_origin() const { return m_actual_pos.distance(m_start_pos); }
+    double get_distance_squared_from_origin() const { return m_actual_pos.distance_squared(m_start_pos); }
 
     void discrete_single_walk();
     void discrete_walk(const unsigned int steps);
