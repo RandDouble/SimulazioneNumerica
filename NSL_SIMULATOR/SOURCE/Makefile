@@ -1,4 +1,4 @@
-CC = g++
+CC = clang++-17
 CFLAGS = -O3 --std=c++11
 AFLAGS = -larmadillo
 all: simulator.exe

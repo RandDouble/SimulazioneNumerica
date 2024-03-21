@@ -5,3 +5,4 @@ lib
 *.dat
 *.exe
 *.csv
+*.o
