@@ -19,11 +19,17 @@ using namespace arma;
 void System ::step()
 { // Perform a simulation step
     if (_sim_type == 0)
+    {
         this->Verlet(); // Perform a MD step
+    }
     else
+    {
         for (int i = 0; i < _npart; i++)
-            this->move(int(_rnd.Rannyu() * _npart)); // Perform a MC step on a randomly choosen particle
-    _nattempts += _npart;                            // update number of attempts performed on the system
+        {
+            this->move(int(_rnd.Rannyu() * _npart));
+        }
+    }                     // Perform a MC step on a randomly choosen particle
+    _nattempts += _npart; // update number of attempts performed on the system
     return;
 }
 
@@ -658,7 +664,7 @@ void System ::measure()
     distance.resize(_ndim);
     double penergy_temp = 0.0, dr; // temporary accumulator for potential energy
     double kenergy_temp = 0.0;     // temporary accumulator for kinetic energy
-    double tenergy_temp = 0.0;
+    double tenergy_temp = 0.0;     // temporary accumulator for total energy
     double magnetization = 0.0;
     double virial = 0.0;
     if (_measure_penergy or _measure_pressure or _measure_gofr)
@@ -676,7 +682,9 @@ void System ::measure()
                 {
                     if (_measure_penergy)
                         penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
-                                                                              // PRESSURE ... TO BE FIXED IN EXERCISE 4
+                    // PRESSURE ... TO BE FIXED IN EXERCISE 4
+                    if (_measure_pressure)
+                        virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
                 }
             }
         }
@@ -718,13 +726,19 @@ void System ::measure()
         _measurement(_index_temp) = (2.0 / 3.0) * kenergy_temp;
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
+    if (_measure_pressure and _measure_temp)
+    {
+        double temperature = _measurement(_index_temp);      
+        _measurement(_index_pressure) = _rho * temperature + 48. * virial / double(_npart)  / (3. * _volume);
+    
+    }
+
     // MAGNETIZATION /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
     // SPECIFIC HEAT /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
     // SUSCEPTIBILITY ////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
-
     _block_av += _measurement; // Update block accumulators
 
     return;
@@ -794,6 +808,18 @@ void System ::averages(int blk)
     }
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
+    if (_measure_pressure)
+    {
+        coutf.open("../OUTPUT/pressure.dat", ios::app);
+        average = _average(_index_temp);
+        sum_average = _global_av(_index_temp);
+        sum_ave2 = _global_av2(_index_temp);
+        coutf << setw(12) << blk
+              << setw(12) << average
+              << setw(12) << sum_average / double(blk)
+              << setw(12) << this->error(sum_average, sum_ave2, blk) << endl;
+        coutf.close();
+    }
     // GOFR //////////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 7
     // MAGNETIZATION /////////////////////////////////////////////////////////////

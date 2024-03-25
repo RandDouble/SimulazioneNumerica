@@ -1,5 +1,5 @@
 108
-#Comment! Le cordinate sono in unità di misura del lato, così non ho requisito della densità dell'atomo. Vengono riscalate in lennard jones durante la simulazione.
+#Comment!
 LJ  -0.500000   -0.500000   -0.500000
 LJ  -0.333333   -0.333333   -0.500000
 LJ  -0.500000   -0.333333   -0.333333
