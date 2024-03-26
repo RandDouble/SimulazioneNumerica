@@ -1,6 +1,6 @@
 CC = clang++-17
-CFLAGS = -O3 --std=c++11
-AFLAGS = -larmadillo
+CFLAGS = -O3 --std=c++17 -Wall -Wextra -Wno-unused-variable -Werror
+AFLAGS = -larmadillo 
 all: simulator.exe
 simulator.exe : system.o NSL_SIMULATOR.o particle.o random.o
 	$(CC) system.o particle.o random.o NSL_SIMULATOR.o -o simulator.exe $(AFLAGS)

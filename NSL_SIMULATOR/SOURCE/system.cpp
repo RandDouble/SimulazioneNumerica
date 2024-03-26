@@ -17,10 +17,11 @@ using namespace std;
 using namespace arma;
 
 void System ::step()
-{ // Perform a simulation step
-    if (_sim_type == 0)
+{
+    // Perform a simulation step
+    if (_sim_type == SymType::LENNARD_JONES_MD) // Perform a MD step
     {
-        this->Verlet(); // Perform a MD step
+        this->Verlet();
     }
     else
     {
@@ -59,7 +60,7 @@ void System ::Verlet()
     return;
 }
 
-double System ::Force(int i, int dim)
+double System ::Force(const int i, const int dim)
 {
     double f = 0.0, dr;
     vec distance;
@@ -81,16 +82,18 @@ double System ::Force(int i, int dim)
     return f;
 }
 
-void System ::move(int i)
-{ // Propose a MC move for particle i
-    if (_sim_type == 3)
-    { // Gibbs sampler for Ising
-      // TO BE FIXED IN EXERCISE 6
-    }
-    else
-    { // M(RT)^2
-        if (_sim_type == 1)
-        {                     // LJ system
+void System ::move(const int i)
+{
+    // Propose a MC move for particle i
+    switch (_sim_type)
+    {
+    case SymType::GIBBS:
+        // To be fixed in esercise 6
+        break;
+    case SymType::LENNARD_JONES_MC:
+        // M(RT)^2
+        if (_sim_type == SymType::LENNARD_JONES_MC) // LJ system
+        {
             vec shift(_ndim); // Will store the proposed translation
             for (int j = 0; j < _ndim; j++)
             {
@@ -105,23 +108,31 @@ void System ::move(int i)
             else
                 _particle(i).moveback(); // If translation is rejected, restore the old configuration
         }
-        else
-        { // Ising 1D
-            if (this->metro(i))
-            {                        // Metropolis acceptance evaluation for a spin flip involving spin i
-                _particle(i).flip(); // If accepted, the spin i is flipped
-                _naccepted++;
-            }
+
+        break;
+    case SymType::LENNARD_JONES_MD:
+        break;
+    case SymType::ISING_MRT2:
+    { // Ising 1D
+        if (this->metro(i))
+        {                        // Metropolis acceptance evaluation for a spin flip involving spin i
+            _particle(i).flip(); // If accepted, the spin i is flipped
+            _naccepted++;
         }
+    }
+
+    break;
+    default:
+        break;
     }
     return;
 }
 
-bool System ::metro(int i)
+bool System ::metro(const int i)
 { // Metropolis algorithm
     bool decision = false;
     double delta_E, acceptance;
-    if (_sim_type == 1)
+    if (_sim_type == SymType::LENNARD_JONES_MC)
         delta_E = this->Boltzmann(i, true) - this->Boltzmann(i, false);
     else
         delta_E = 2.0 * _particle(i).getspin() *
@@ -132,7 +143,7 @@ bool System ::metro(int i)
     return decision;
 }
 
-double System ::Boltzmann(int i, bool xnew)
+double System ::Boltzmann(const int i, const bool xnew)
 {
     double energy_i = 0.0;
     double dx, dy, dz, dr;
@@ -181,7 +192,8 @@ void System ::initialize()
     _rnd.SetRandom(seed, p1, p2);
 
     ofstream couta("../OUTPUT/acceptance.dat"); // Set the heading line in file ../OUTPUT/acceptance.dat
-    couta << "#   N_BLOCK:  ACCEPTANCE:" << endl;
+    couta << "#   N_BLOCK:  ACCEPTANCE:"
+          << "\n";
     couta.close();
 
     ifstream input("../INPUT/input.dat"); // Start reading ../INPUT/input.dat
@@ -195,24 +207,30 @@ void System ::initialize()
         if (property == "SIMULATION_TYPE")
         {
             input >> _sim_type;
-            if (_sim_type > 1)
+            if (_sim_type > SymType::LENNARD_JONES_MC)
             {
                 input >> _J;
                 input >> _H;
             }
-            if (_sim_type > 3)
+            switch (_sim_type)
             {
-                cerr << "PROBLEM: unknown simulation type" << endl;
-                exit(EXIT_FAILURE);
+            case SymType::LENNARD_JONES_MD:
+                coutf << "LJ MOLECULAR DYNAMICS (NVE) SIMULATION"
+                      << "\n";
+                break;
+            case SymType::LENNARD_JONES_MC:
+                coutf << "LJ MONTE CARLO (NVT) SIMULATION"
+                      << "\n";
+                break;
+            case SymType::ISING_MRT2:
+                coutf << "ISING 1D MONTE CARLO (MRT^2) SIMULATION"
+                      << "\n";
+                break;
+            case SymType::GIBBS:
+                coutf << "ISING 1D MONTE CARLO (GIBBS) SIMULATION"
+                      << "\n";
+                break;
             }
-            if (_sim_type == 0)
-                coutf << "LJ MOLECULAR DYNAMICS (NVE) SIMULATION" << endl;
-            else if (_sim_type == 1)
-                coutf << "LJ MONTE CARLO (NVT) SIMULATION" << endl;
-            else if (_sim_type == 2)
-                coutf << "ISING 1D MONTE CARLO (MRT^2) SIMULATION" << endl;
-            else if (_sim_type == 3)
-                coutf << "ISING 1D MONTE CARLO (GIBBS) SIMULATION" << endl;
         }
         else if (property == "RESTART")
         {
@@ -222,7 +240,7 @@ void System ::initialize()
         {
             input >> _temp;
             _beta = 1.0 / _temp;
-            coutf << "TEMPERATURE= " << _temp << endl;
+            coutf << "TEMPERATURE= " << _temp << "\n";
         }
         else if (property == "NPART")
         {
@@ -237,7 +255,7 @@ void System ::initialize()
                 if (_rnd.Rannyu() > 0.5)
                     _particle(i).flip(); // to randomize the spin configuration
             }
-            coutf << "NPART= " << _npart << endl;
+            coutf << "NPART= " << _npart << "\n";
         }
         else if (property == "RHO")
         {
@@ -254,32 +272,33 @@ void System ::initialize()
             {
                 coutf << setw(12) << _side[i];
             }
-            coutf << endl;
+            coutf << "\n";
         }
         else if (property == "R_CUT")
         {
             input >> _r_cut;
-            coutf << "R_CUT= " << _r_cut << endl;
+            coutf << "R_CUT= " << _r_cut << "\n";
         }
         else if (property == "DELTA")
         {
             input >> delta;
-            coutf << "DELTA= " << delta << endl;
+            coutf << "DELTA= " << delta << "\n";
             _delta = delta;
         }
         else if (property == "NBLOCKS")
         {
             input >> _nblocks;
-            coutf << "NBLOCKS= " << _nblocks << endl;
+            coutf << "NBLOCKS= " << _nblocks << "\n";
         }
         else if (property == "NSTEPS")
         {
             input >> _nsteps;
-            coutf << "NSTEPS= " << _nsteps << endl;
+            coutf << "NSTEPS= " << _nsteps << "\n";
         }
         else if (property == "ENDINPUT")
         {
-            coutf << "Reading input completed!" << endl;
+            coutf << "Reading input completed!"
+                  << "\n";
             break;
         }
         else
@@ -288,14 +307,15 @@ void System ::initialize()
     input.close();
     this->read_configuration();
     this->initialize_velocities();
-    coutf << "System initialized!" << endl;
+    coutf << "System initialized!"
+          << "\n";
     coutf.close();
     return;
 }
 
 void System ::initialize_velocities()
 {
-    if (_restart and _sim_type == 0)
+    if (_restart and _sim_type == SymType::LENNARD_JONES_MD)
     {
         ifstream cinf;
         cinf.open("../INPUT/CONFIG/velocities.in");
@@ -347,7 +367,7 @@ void System ::initialize_velocities()
             _particle(i).setvelocity(2, vz(i) * scalef);
         }
     }
-    if (_sim_type == 0)
+    if (_sim_type == SymType::LENNARD_JONES_MD)
     {
         double xold, yold, zold;
         for (int i = 0; i < _npart; i++)
@@ -388,7 +408,8 @@ void System ::initialize_properties()
             if (property == "POTENTIAL_ENERGY")
             {
                 ofstream coutp("../OUTPUT/potential_energy.dat");
-                coutp << "#     BLOCK:  ACTUAL_PE:     PE_AVE:      ERROR:" << endl;
+                coutp << "#     BLOCK:  ACTUAL_PE:     PE_AVE:      ERROR:"
+                      << "\n";
                 coutp.close();
                 _nprop++;
                 _index_penergy = index_property;
@@ -399,7 +420,8 @@ void System ::initialize_properties()
             else if (property == "KINETIC_ENERGY")
             {
                 ofstream coutk("../OUTPUT/kinetic_energy.dat");
-                coutk << "#     BLOCK:   ACTUAL_KE:    KE_AVE:      ERROR:" << endl;
+                coutk << "#     BLOCK:   ACTUAL_KE:    KE_AVE:      ERROR:"
+                      << "\n";
                 coutk.close();
                 _nprop++;
                 _measure_kenergy = true;
@@ -409,7 +431,8 @@ void System ::initialize_properties()
             else if (property == "TOTAL_ENERGY")
             {
                 ofstream coutt("../OUTPUT/total_energy.dat");
-                coutt << "#     BLOCK:   ACTUAL_TE:    TE_AVE:      ERROR:" << endl;
+                coutt << "#     BLOCK:   ACTUAL_TE:    TE_AVE:      ERROR:"
+                      << "\n";
                 coutt.close();
                 _nprop++;
                 _measure_tenergy = true;
@@ -419,7 +442,8 @@ void System ::initialize_properties()
             else if (property == "TEMPERATURE")
             {
                 ofstream coutte("../OUTPUT/temperature.dat");
-                coutte << "#     BLOCK:   ACTUAL_T:     T_AVE:       ERROR:" << endl;
+                coutte << "#     BLOCK:   ACTUAL_T:     T_AVE:       ERROR:"
+                       << "\n";
                 coutte.close();
                 _nprop++;
                 _measure_temp = true;
@@ -429,7 +453,8 @@ void System ::initialize_properties()
             else if (property == "PRESSURE")
             {
                 ofstream coutpr("../OUTPUT/pressure.dat");
-                coutpr << "#     BLOCK:   ACTUAL_P:     P_AVE:       ERROR:" << endl;
+                coutpr << "#     BLOCK:   ACTUAL_P:     P_AVE:       ERROR:"
+                       << "\n";
                 coutpr.close();
                 _nprop++;
                 _measure_pressure = true;
@@ -440,7 +465,8 @@ void System ::initialize_properties()
             else if (property == "GOFR")
             {
                 ofstream coutgr("../OUTPUT/gofr.dat");
-                coutgr << "# DISTANCE:     AVE_GOFR:        ERROR:" << endl;
+                coutgr << "# DISTANCE:     AVE_GOFR:        ERROR:"
+                       << "\n";
                 coutgr.close();
                 input >> _n_bins;
                 _nprop += _n_bins;
@@ -452,7 +478,8 @@ void System ::initialize_properties()
             else if (property == "MAGNETIZATION")
             {
                 ofstream coutpr("../OUTPUT/magnetization.dat");
-                coutpr << "#     BLOCK:   ACTUAL_M:     M_AVE:       ERROR:" << endl;
+                coutpr << "#     BLOCK:   ACTUAL_M:     M_AVE:       ERROR:"
+                       << "\n";
                 coutpr.close();
                 _nprop++;
                 _measure_magnet = true;
@@ -462,7 +489,8 @@ void System ::initialize_properties()
             else if (property == "SPECIFIC_HEAT")
             {
                 ofstream coutpr("../OUTPUT/specific_heat.dat");
-                coutpr << "#     BLOCK:   ACTUAL_CV:    CV_AVE:      ERROR:" << endl;
+                coutpr << "#     BLOCK:   ACTUAL_CV:    CV_AVE:      ERROR:"
+                       << "\n";
                 coutpr.close();
                 _nprop++;
                 _measure_cv = true;
@@ -472,7 +500,8 @@ void System ::initialize_properties()
             else if (property == "SUSCEPTIBILITY")
             {
                 ofstream coutpr("../OUTPUT/susceptibility.dat");
-                coutpr << "#     BLOCK:   ACTUAL_X:     X_AVE:       ERROR:" << endl;
+                coutpr << "#     BLOCK:   ACTUAL_X:     X_AVE:       ERROR:"
+                       << "\n";
                 coutpr.close();
                 _nprop++;
                 _measure_chi = true;
@@ -483,7 +512,8 @@ void System ::initialize_properties()
             {
                 ofstream coutf;
                 coutf.open("../OUTPUT/output.dat", ios::app);
-                coutf << "Reading properties completed!" << endl;
+                coutf << "Reading properties completed!"
+                      << "\n";
                 coutf.close();
                 break;
             }
@@ -515,29 +545,31 @@ void System ::finalize()
     _rnd.SaveSeed();
     ofstream coutf;
     coutf.open("../OUTPUT/output.dat", ios::app);
-    coutf << "Simulation completed!" << endl;
+    coutf << "Simulation completed!"
+          << "\n";
     coutf.close();
     return;
 }
 
 // Write current configuration as a .xyz file in directory ../OUTPUT/CONFIG/
-void System ::write_configuration()
+void System ::write_configuration() const
 {
     ofstream coutf;
-    if (_sim_type < 2)
+    if (_sim_type < SymType::ISING_MRT2)
     {
         coutf.open("../OUTPUT/CONFIG/config.xyz");
         if (coutf.is_open())
         {
-            coutf << _npart << endl;
-            coutf << "#Comment!" << endl;
+            coutf << _npart << "\n";
+            coutf << "#Comment!"
+                  << "\n";
             for (int i = 0; i < _npart; i++)
             {
                 coutf << "LJ"
                       << "  "
                       << setw(16) << _particle(i).getposition(0, true) / _side(0)          // x
                       << setw(16) << _particle(i).getposition(1, true) / _side(1)          // y
-                      << setw(16) << _particle(i).getposition(2, true) / _side(2) << endl; // z
+                      << setw(16) << _particle(i).getposition(2, true) / _side(2) << "\n"; // z
             }
         }
         else
@@ -556,21 +588,21 @@ void System ::write_configuration()
 }
 
 // Write configuration nconf as a .xyz file in directory ../OUTPUT/CONFIG/
-void System ::write_XYZ(int nconf)
+void System ::write_XYZ(const int nconf) const
 {
     ofstream coutf;
     coutf.open("../OUTPUT/CONFIG/config_" + to_string(nconf) + ".xyz");
     if (coutf.is_open())
     {
-        coutf << _npart << endl;
-        coutf << "#Comment!" << endl;
+        coutf << _npart << "\n";
+        coutf << "#Comment!\n";
         for (int i = 0; i < _npart; i++)
         {
             coutf << "LJ"
                   << "  "
                   << setw(16) << _particle(i).getposition(0, true)          // x
                   << setw(16) << _particle(i).getposition(1, true)          // y
-                  << setw(16) << _particle(i).getposition(2, true) << endl; // z
+                  << setw(16) << _particle(i).getposition(2, true) << "\n"; // z
         }
     }
     else
@@ -579,7 +611,7 @@ void System ::write_XYZ(int nconf)
     return;
 }
 
-void System ::write_velocities()
+void System ::write_velocities() const
 {
     ofstream coutf;
     coutf.open("../OUTPUT/CONFIG/velocities.out");
@@ -589,11 +621,13 @@ void System ::write_velocities()
         {
             coutf << setw(16) << _particle(i).getvelocity(0)          // vx
                   << setw(16) << _particle(i).getvelocity(1)          // vy
-                  << setw(16) << _particle(i).getvelocity(2) << endl; // vz
+                  << setw(16) << _particle(i).getvelocity(2) << "\n"; // vz
         }
     }
     else
+    {
         cerr << "PROBLEM: Unable to open velocities.dat" << endl;
+    }
     coutf.close();
     return;
 }
@@ -612,7 +646,8 @@ void System ::read_configuration()
         cinf >> ncoord;
         if (ncoord != _npart)
         {
-            cerr << "PROBLEM: conflicting number of coordinates in input.dat & config.xyz not match!" << endl;
+            cerr << "PROBLEM: conflicting number of coordinates in input.dat & config.xyz not match!"
+                 << "\n";
             exit(EXIT_FAILURE);
         }
         cinf >> comment;
@@ -626,9 +661,10 @@ void System ::read_configuration()
         }
     }
     else
-        cerr << "PROBLEM: Unable to open INPUT file config.xyz" << endl;
+        cerr << "PROBLEM: Unable to open INPUT file config.xyz"
+             << "\n";
     cinf.close();
-    if (_restart and _sim_type > 1)
+    if (_restart and _sim_type > SymType::LENNARD_JONES_MC)
     {
         int spin;
         cinf.open("../INPUT/CONFIG/config.spin");
@@ -648,7 +684,7 @@ void System ::block_reset(int blk)
     if (blk > 0)
     {
         coutf.open("../OUTPUT/output.dat", ios::app);
-        coutf << "Block completed: " << blk << endl;
+        coutf << "Block completed: " << blk << "\n";
         coutf.close();
     }
     _block_av.zeros();
@@ -681,10 +717,13 @@ void System ::measure()
                 if (dr < _r_cut)
                 {
                     if (_measure_penergy)
+                    {
                         penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
-                    // PRESSURE ... TO BE FIXED IN EXERCISE 4
-                    if (_measure_pressure)
+                    }
+                    if (_measure_pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
+                    {
                         virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
+                    }
                 }
             }
         }
@@ -699,15 +738,19 @@ void System ::measure()
     if (_measure_kenergy)
     {
         for (int i = 0; i < _npart; i++)
+        {
             kenergy_temp += 0.5 * dot(_particle(i).getvelocity(), _particle(i).getvelocity());
+        }
         kenergy_temp /= double(_npart);
         _measurement(_index_kenergy) = kenergy_temp;
     }
     // TOTAL ENERGY (kinetic+potential) //////////////////////////////////////////
     if (_measure_tenergy)
     {
-        if (_sim_type < 2)
+        if (_sim_type < SymType::ISING_MRT2)
+        {
             _measurement(_index_tenergy) = kenergy_temp + penergy_temp;
+        }
         else
         {
             double s_i, s_j;
@@ -728,9 +771,8 @@ void System ::measure()
     // TO BE FIXED IN EXERCISE 4
     if (_measure_pressure and _measure_temp)
     {
-        double temperature = _measurement(_index_temp);      
-        _measurement(_index_pressure) = _rho * temperature + 48. * virial / double(_npart)  / (3. * _volume);
-    
+        double temperature = _measurement(_index_temp);
+        _measurement(_index_pressure) = _rho * temperature + 16. * virial / ( _volume); // 48 / 3 = 16...
     }
 
     // MAGNETIZATION /////////////////////////////////////////////////////////////
@@ -744,7 +786,7 @@ void System ::measure()
     return;
 }
 
-void System ::averages(int blk)
+void System ::averages(const int blk)
 {
 
     ofstream coutf;
@@ -764,7 +806,7 @@ void System ::averages(int blk)
         coutf << setw(12) << blk
               << setw(12) << average
               << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << endl;
+              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
         coutf.close();
     }
     // KINETIC ENERGY ////////////////////////////////////////////////////////////
@@ -777,7 +819,7 @@ void System ::averages(int blk)
         coutf << setw(12) << blk
               << setw(12) << average
               << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << endl;
+              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
         coutf.close();
     }
     // TOTAL ENERGY //////////////////////////////////////////////////////////////
@@ -790,7 +832,7 @@ void System ::averages(int blk)
         coutf << setw(12) << blk
               << setw(12) << average
               << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << endl;
+              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
         coutf.close();
     }
     // TEMPERATURE ///////////////////////////////////////////////////////////////
@@ -803,7 +845,7 @@ void System ::averages(int blk)
         coutf << setw(12) << blk
               << setw(12) << average
               << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << endl;
+              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
         coutf.close();
     }
     // PRESSURE //////////////////////////////////////////////////////////////////
@@ -817,7 +859,7 @@ void System ::averages(int blk)
         coutf << setw(12) << blk
               << setw(12) << average
               << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << endl;
+              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
         coutf.close();
     }
     // GOFR //////////////////////////////////////////////////////////////////////
@@ -835,28 +877,18 @@ void System ::averages(int blk)
         fraction = double(_naccepted) / double(_nattempts);
     else
         fraction = 0.0;
-    coutf << setw(12) << blk << setw(12) << fraction << endl;
+    coutf << setw(12) << blk << setw(12) << fraction << "\n";
     coutf.close();
 
     return;
 }
 
-double System ::error(double acc, double acc2, int blk)
+double System ::error(const double acc, const double acc2, const int blk)
 {
     if (blk <= 1)
         return 0.0;
     else
         return sqrt(fabs(acc2 / double(blk) - pow(acc / double(blk), 2)) / double(blk));
-}
-
-int System ::get_nbl()
-{
-    return _nblocks;
-}
-
-int System ::get_nsteps()
-{
-    return _nsteps;
 }
 
 /****************************************************************
