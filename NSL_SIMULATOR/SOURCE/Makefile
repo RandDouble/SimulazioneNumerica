@@ -1,5 +1,8 @@
 CC = clang++-17
-CFLAGS = -O3 --std=c++17 -Wall -Wextra -Wno-unused-variable -Werror -fopenmp -march=native
+CFLAGS = -O3 --std=c++17\
+		 -Wall -Wextra -Wno-unused-variable -Werror\
+		 -fopenmp -march=native#\
+#		 -stdlib=libc++ -fexperimental-library
 AFLAGS = -larmadillo 
 
 all: simulator.exe
