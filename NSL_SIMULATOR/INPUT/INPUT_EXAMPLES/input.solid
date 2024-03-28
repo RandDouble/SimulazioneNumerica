@@ -1,6 +1,6 @@
 SIMULATION_TYPE        0/1
 RESTART                0
-TEMP                   0.8
+TEMP                   1.55 
 NPART                  108
 RHO                    1.1
 R_CUT                  2.2

@@ -16,6 +16,24 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 using namespace std;
 using namespace arma;
 
+std::istream &operator>>(std::istream &in, SymType &type)
+{
+    int el;
+    if (!(in >> el))
+    {
+        return in;
+    }
+    if (el > static_cast<int>(SymType::GIBBS))
+    {
+        in.setstate(in.rdstate() | std::ios::failbit);
+        cerr << "PROBLEM: unknown simulation type" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    type = static_cast<SymType>(el);
+    return in;
+}
+
 void System ::step()
 {
     // Perform a simulation step
@@ -60,7 +78,7 @@ void System ::Verlet()
     return;
 }
 
-double System ::Force(const int i, const int dim)
+double System::Force(const int i, const int dim)
 {
     double f = 0.0, dr;
     vec distance;
@@ -165,13 +183,20 @@ double System ::Boltzmann(const int i, const bool xnew)
     return 4.0 * energy_i;
 }
 
-double System ::pbc(double position, int i)
-{ // Enforce periodic boundary conditions
+/// @brief Enforce periodic boundary conditions
+/// @param position
+/// @param i
+/// @return Reuturns position after Boudary Condition are applied
+double System::pbc(double position, int i)
+{
     return position - _side(i) * rint(position / _side(i));
 }
 
+/// @brief Enforce periodic boundary conditions for spins
+/// @param i
+/// @return Return Spins after proper Boundary Condition are applied
 int System ::pbc(int i)
-{ // Enforce periodic boundary conditions for spins
+{
     if (i >= _npart)
         i = i - _npart;
     else if (i < 0)
@@ -179,8 +204,9 @@ int System ::pbc(int i)
     return i;
 }
 
+/// @brief Initialize the System object according to the content of the input files in the ../INPUT/ directory
 void System ::initialize()
-{ // Initialize the System object according to the content of the input files in the ../INPUT/ directory
+{
 
     int p1, p2; // Read from ../INPUT/Primes a pair of numbers to be used to initialize the RNG
     ifstream Primes("../INPUT/Primes");
@@ -265,8 +291,12 @@ void System ::initialize()
             _halfside.resize(_ndim);
             double side = pow(_volume, 1.0 / 3.0);
             for (int i = 0; i < _ndim; i++)
+            {
                 _side(i) = side;
+            }
+
             _halfside = 0.5 * _side;
+
             coutf << "SIDE= ";
             for (int i = 0; i < _ndim; i++)
             {
@@ -348,8 +378,12 @@ void System ::initialize_velocities()
             sumv(1) += vy(i);
             sumv(2) += vz(i);
         }
+
         for (int idim = 0; idim < _ndim; idim++)
+        {
             sumv(idim) = sumv(idim) / double(_npart);
+        }
+
         double sumv2 = 0.0, scalef;
         for (int i = 0; i < _npart; i++)
         {
@@ -358,6 +392,7 @@ void System ::initialize_velocities()
             vz(i) = vz(i) - sumv(2);
             sumv2 += vx(i) * vx(i) + vy(i) * vy(i) + vz(i) * vz(i);
         }
+
         sumv2 /= double(_npart);
         scalef = sqrt(3.0 * _temp / sumv2); // velocity scale factor
         for (int i = 0; i < _npart; i++)
@@ -367,6 +402,7 @@ void System ::initialize_velocities()
             _particle(i).setvelocity(2, vz(i) * scalef);
         }
     }
+
     if (_sim_type == SymType::LENNARD_JONES_MD)
     {
         double xold, yold, zold;
@@ -383,21 +419,12 @@ void System ::initialize_velocities()
     return;
 }
 
+/// @brief Initialize data members used for measurement of properties
 void System ::initialize_properties()
-{ // Initialize data members used for measurement of properties
-
+{
     string property;
     int index_property = 0;
     _nprop = 0;
-
-    _measure_penergy = false; // Defining which properties will be measured
-    _measure_kenergy = false;
-    _measure_tenergy = false;
-    _measure_pressure = false;
-    _measure_gofr = false;
-    _measure_magnet = false;
-    _measure_cv = false;
-    _measure_chi = false;
 
     ifstream input("../INPUT/properties.dat");
     if (input.is_open())
@@ -412,8 +439,10 @@ void System ::initialize_properties()
                       << "\n";
                 coutp.close();
                 _nprop++;
-                _index_penergy = index_property;
-                _measure_penergy = true;
+                _measure.penergy = true;
+                _measure.idx_penergy = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));   // This will simplify some operations later
+                _measure.output_names.emplace_back("../OUTPUT/potential_energy.dat"); // This will simplify some operations later
                 index_property++;
                 _vtail = 0.0; // TO BE FIXED IN EXERCISE 7
             }
@@ -424,8 +453,10 @@ void System ::initialize_properties()
                       << "\n";
                 coutk.close();
                 _nprop++;
-                _measure_kenergy = true;
-                _index_kenergy = index_property;
+                _measure.kenergy = true;
+                _measure.idx_kenergy = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app)); // This will simplify some operations later
+                _measure.output_names.emplace_back("../OUTPUT/kinetic_energy.dat"); // This will simplify some operations later
                 index_property++;
             }
             else if (property == "TOTAL_ENERGY")
@@ -435,8 +466,10 @@ void System ::initialize_properties()
                       << "\n";
                 coutt.close();
                 _nprop++;
-                _measure_tenergy = true;
-                _index_tenergy = index_property;
+                _measure.tenergy = true;
+                _measure.idx_tenergy = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.output_names.emplace_back("../OUTPUT/total_energy.dat");
                 index_property++;
             }
             else if (property == "TEMPERATURE")
@@ -446,8 +479,10 @@ void System ::initialize_properties()
                        << "\n";
                 coutte.close();
                 _nprop++;
-                _measure_temp = true;
-                _index_temp = index_property;
+                _measure.temp = true;
+                _measure.idx_temp = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.output_names.emplace_back("../OUTPUT/temperature.dat");
                 index_property++;
             }
             else if (property == "PRESSURE")
@@ -457,8 +492,10 @@ void System ::initialize_properties()
                        << "\n";
                 coutpr.close();
                 _nprop++;
-                _measure_pressure = true;
-                _index_pressure = index_property;
+                _measure.pressure = true;
+                _measure.idx_pressure = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.output_names.emplace_back("../OUTPUT/pressure.dat");
                 index_property++;
                 _ptail = 0.0; // TO BE FIXED IN EXERCISE 7
             }
@@ -471,8 +508,10 @@ void System ::initialize_properties()
                 input >> _n_bins;
                 _nprop += _n_bins;
                 _bin_size = (_halfside.min()) / (double)_n_bins;
-                _measure_gofr = true;
-                _index_gofr = index_property;
+                _measure.gofr = true;
+                _measure.idx_gofr = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.output_names.emplace_back("../OUTPUT/gofr.dat");
                 index_property += _n_bins;
             }
             else if (property == "MAGNETIZATION")
@@ -482,8 +521,10 @@ void System ::initialize_properties()
                        << "\n";
                 coutpr.close();
                 _nprop++;
-                _measure_magnet = true;
-                _index_magnet = index_property;
+                _measure.magnet = true;
+                _measure.idx_magnet = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.output_names.emplace_back("../OUTPUT/magnetization.dat");
                 index_property++;
             }
             else if (property == "SPECIFIC_HEAT")
@@ -493,8 +534,10 @@ void System ::initialize_properties()
                        << "\n";
                 coutpr.close();
                 _nprop++;
-                _measure_cv = true;
-                _index_cv = index_property;
+                _measure.cv = true;
+                _measure.idx_cv = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.output_names.emplace_back("../OUTPUT/specific_heat.dat");
                 index_property++;
             }
             else if (property == "SUSCEPTIBILITY")
@@ -504,8 +547,10 @@ void System ::initialize_properties()
                        << "\n";
                 coutpr.close();
                 _nprop++;
-                _measure_chi = true;
-                _index_chi = index_property;
+                _measure.chi = true;
+                _measure.idx_chi = index_property;
+                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.output_names.emplace_back("../OUTPUT/susceptibility.dat");
                 index_property++;
             }
             else if (property == "ENDPROPERTIES")
@@ -544,6 +589,13 @@ void System ::finalize()
     this->write_configuration();
     _rnd.SaveSeed();
     ofstream coutf;
+
+    for (size_t i = 0; i < _measure.v_streams.size(); i++)
+    {
+        coutf.open(_measure.output_names[i], ios::app);
+        coutf << _measure.v_streams[i].str();
+        coutf.close();
+    }
     coutf.open("../OUTPUT/output.dat", ios::app);
     coutf << "Simulation completed!"
           << "\n";
@@ -551,7 +603,7 @@ void System ::finalize()
     return;
 }
 
-// Write current configuration as a .xyz file in directory ../OUTPUT/CONFIG/
+/// @brief Write current configuration as a .xyz file in directory ../OUTPUT/CONFIG/
 void System ::write_configuration() const
 {
     ofstream coutf;
@@ -587,7 +639,8 @@ void System ::write_configuration() const
     return;
 }
 
-// Write configuration nconf as a .xyz file in directory ../OUTPUT/CONFIG/
+/// @brief Write configuration nconf as a .xyz file in directory ../OUTPUT/CONFIG/
+/// @param nconf
 void System ::write_XYZ(const int nconf) const
 {
     ofstream coutf;
@@ -632,7 +685,7 @@ void System ::write_velocities() const
     return;
 }
 
-// Read configuration from a .xyz file in directory ../OUTPUT/CONFIG/
+/// @brief Read configuration from a .xyz file in directory ../OUTPUT/CONFIG/
 void System ::read_configuration()
 {
     ifstream cinf;
@@ -678,8 +731,10 @@ void System ::read_configuration()
     return;
 }
 
-void System ::block_reset(int blk)
-{ // Reset block accumulators to zero
+/// @brief Reset block accumulators to zero
+/// @param blk
+void System::block_reset(int blk)
+{
     ofstream coutf;
     if (blk > 0)
     {
@@ -691,19 +746,21 @@ void System ::block_reset(int blk)
     return;
 }
 
-void System ::measure()
-{ // Measure properties
+/// @brief Measure properties
+void System::measure()
+{
     _measurement.zeros();
     // POTENTIAL ENERGY, VIRIAL, GOFR ///////////////////////////////////////////
     int bin;
     vec distance;
     distance.resize(_ndim);
-    double penergy_temp = 0.0, dr; // temporary accumulator for potential energy
-    double kenergy_temp = 0.0;     // temporary accumulator for kinetic energy
-    double tenergy_temp = 0.0;     // temporary accumulator for total energy
+    double penergy_temp = 0.0, dr = 0.0; // temporary accumulator for potential energy
+    double kenergy_temp = 0.0;           // temporary accumulator for kinetic energy
+    double tenergy_temp = 0.0;           // temporary accumulator for total energy
     double magnetization = 0.0;
     double virial = 0.0;
-    if (_measure_penergy or _measure_pressure or _measure_gofr)
+
+    if (_measure.penergy or _measure.pressure or _measure.gofr)
     {
         for (int i = 0; i < _npart - 1; i++)
         {
@@ -714,42 +771,42 @@ void System ::measure()
                 distance(2) = this->pbc(_particle(i).getposition(2, true) - _particle(j).getposition(2, true), 2);
                 dr = sqrt(dot(distance, distance));
                 // GOFR ... TO BE FIXED IN EXERCISE 7
-                if (dr < _r_cut)
+                if (dr < _r_cut and _measure.penergy)
                 {
-                    if (_measure_penergy)
-                    {
-                        penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
-                    }
-                    if (_measure_pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
-                    {
-                        virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
-                    }
+                    penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
+                }
+                if (dr < _r_cut and _measure.pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
+                {
+                    virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
                 }
             }
         }
     }
+
     // POTENTIAL ENERGY //////////////////////////////////////////////////////////
-    if (_measure_penergy)
+    if (_measure.penergy)
     {
         penergy_temp = _vtail + 4.0 * penergy_temp / double(_npart);
-        _measurement(_index_penergy) = penergy_temp;
+        _measurement(_measure.idx_penergy) = penergy_temp;
     }
+
     // KINETIC ENERGY ////////////////////////////////////////////////////////////
-    if (_measure_kenergy)
+    if (_measure.kenergy)
     {
         for (int i = 0; i < _npart; i++)
         {
             kenergy_temp += 0.5 * dot(_particle(i).getvelocity(), _particle(i).getvelocity());
         }
         kenergy_temp /= double(_npart);
-        _measurement(_index_kenergy) = kenergy_temp;
+        _measurement(_measure.idx_kenergy) = kenergy_temp;
     }
+
     // TOTAL ENERGY (kinetic+potential) //////////////////////////////////////////
-    if (_measure_tenergy)
+    if (_measure.tenergy)
     {
         if (_sim_type < SymType::ISING_MRT2)
         {
-            _measurement(_index_tenergy) = kenergy_temp + penergy_temp;
+            _measurement(_measure.idx_tenergy) = kenergy_temp + penergy_temp;
         }
         else
         {
@@ -761,18 +818,18 @@ void System ::measure()
                 tenergy_temp += -_J * s_i * s_j - 0.5 * _H * (s_i + s_j);
             }
             tenergy_temp /= double(_npart);
-            _measurement(_index_tenergy) = tenergy_temp;
+            _measurement(_measure.idx_tenergy) = tenergy_temp;
         }
     }
     // TEMPERATURE ///////////////////////////////////////////////////////////////
-    if (_measure_temp and _measure_kenergy)
-        _measurement(_index_temp) = (2.0 / 3.0) * kenergy_temp;
+    if (_measure.temp and _measure.kenergy)
+        _measurement(_measure.idx_temp) = (2.0 / 3.0) * kenergy_temp;
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
-    if (_measure_pressure and _measure_temp)
+    if (_measure.pressure and _measure.temp)
     {
-        double temperature = _measurement(_index_temp);
-        _measurement(_index_pressure) = _rho * temperature + 16. * virial / ( _volume); // 48 / 3 = 16...
+        double temperature = _measurement(_measure.idx_temp);
+        _measurement(_measure.idx_pressure) = _rho * temperature + 16. * virial / (_volume); // 48 / 3 = 16...
     }
 
     // MAGNETIZATION /////////////////////////////////////////////////////////////
@@ -797,70 +854,60 @@ void System ::averages(const int blk)
     _global_av2 += _average % _average; // % -> element-wise multiplication
 
     // POTENTIAL ENERGY //////////////////////////////////////////////////////////
-    if (_measure_penergy)
+    if (_measure.penergy)
     {
-        coutf.open("../OUTPUT/potential_energy.dat", ios::app);
-        average = _average(_index_penergy);
-        sum_average = _global_av(_index_penergy);
-        sum_ave2 = _global_av2(_index_penergy);
-        coutf << setw(12) << blk
-              << setw(12) << average
-              << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
-        coutf.close();
+        average = _average(_measure.idx_penergy);
+        sum_average = _global_av(_measure.idx_penergy);
+        sum_ave2 = _global_av2(_measure.idx_penergy);
+        _measure.stream_penergy() << setw(12) << blk
+                                  << setw(12) << average
+                                  << setw(12) << sum_average / double(blk)
+                                  << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // KINETIC ENERGY ////////////////////////////////////////////////////////////
-    if (_measure_kenergy)
+    if (_measure.kenergy)
     {
-        coutf.open("../OUTPUT/kinetic_energy.dat", ios::app);
-        average = _average(_index_kenergy);
-        sum_average = _global_av(_index_kenergy);
-        sum_ave2 = _global_av2(_index_kenergy);
-        coutf << setw(12) << blk
-              << setw(12) << average
-              << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
-        coutf.close();
+        average = _average(_measure.idx_kenergy);
+        sum_average = _global_av(_measure.idx_kenergy);
+        sum_ave2 = _global_av2(_measure.idx_kenergy);
+        _measure.stream_kenergy() << setw(12) << blk
+                                  << setw(12) << average
+                                  << setw(12) << sum_average / double(blk)
+                                  << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // TOTAL ENERGY //////////////////////////////////////////////////////////////
-    if (_measure_tenergy)
+    if (_measure.tenergy)
     {
-        coutf.open("../OUTPUT/total_energy.dat", ios::app);
-        average = _average(_index_tenergy);
-        sum_average = _global_av(_index_tenergy);
-        sum_ave2 = _global_av2(_index_tenergy);
-        coutf << setw(12) << blk
-              << setw(12) << average
-              << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
-        coutf.close();
+        average = _average(_measure.idx_tenergy);
+        sum_average = _global_av(_measure.idx_tenergy);
+        sum_ave2 = _global_av2(_measure.idx_tenergy);
+        _measure.stream_tenergy() << setw(12) << blk
+                                  << setw(12) << average
+                                  << setw(12) << sum_average / double(blk)
+                                  << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // TEMPERATURE ///////////////////////////////////////////////////////////////
-    if (_measure_temp)
+    if (_measure.temp)
     {
-        coutf.open("../OUTPUT/temperature.dat", ios::app);
-        average = _average(_index_temp);
-        sum_average = _global_av(_index_temp);
-        sum_ave2 = _global_av2(_index_temp);
-        coutf << setw(12) << blk
-              << setw(12) << average
-              << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
-        coutf.close();
+        average = _average(_measure.idx_temp);
+        sum_average = _global_av(_measure.idx_temp);
+        sum_ave2 = _global_av2(_measure.idx_temp);
+        _measure.stream_temp() << setw(12) << blk
+                               << setw(12) << average
+                               << setw(12) << sum_average / double(blk)
+                               << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
-    if (_measure_pressure)
+    if (_measure.pressure)
     {
-        coutf.open("../OUTPUT/pressure.dat", ios::app);
-        average = _average(_index_temp);
-        sum_average = _global_av(_index_temp);
-        sum_ave2 = _global_av2(_index_temp);
-        coutf << setw(12) << blk
-              << setw(12) << average
-              << setw(12) << sum_average / double(blk)
-              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
-        coutf.close();
+        average = _average(_measure.idx_pressure);
+        sum_average = _global_av(_measure.idx_pressure);
+        sum_ave2 = _global_av2(_measure.idx_pressure);
+        _measure.stream_pressure() << setw(12) << blk
+                                   << setw(12) << average
+                                   << setw(12) << sum_average / double(blk)
+                                   << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // GOFR //////////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 7
@@ -885,10 +932,7 @@ void System ::averages(const int blk)
 
 double System ::error(const double acc, const double acc2, const int blk)
 {
-    if (blk <= 1)
-        return 0.0;
-    else
-        return sqrt(fabs(acc2 / double(blk) - pow(acc / double(blk), 2)) / double(blk));
+    return (blk <= 1) ? 0.0 : sqrt(fabs(acc2 / double(blk) - pow(acc / double(blk), 2)) / double(blk));
 }
 
 /****************************************************************

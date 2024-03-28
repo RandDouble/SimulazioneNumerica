@@ -57,6 +57,13 @@ bool check_write_to_file(int argc, char *argv[])
 {
     for (int i = 1; i < argc; ++i)
     {
+        if (strcmp(argv[i], "--help") | strcmp(argv[i], "-h"))
+        {
+            std::cout << "USAGE : " << argv[0] << " [OPTIONS... ]\n"
+                      << "\t--write-config :  To output all the configuration assumed by system\n"
+                      << "\t--help, -h     :  To display this help message\n";
+            exit(0);
+        }
         if (strcmp(argv[i], "--write-config"))
         {
             return true;
