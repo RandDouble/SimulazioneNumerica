@@ -1,11 +1,7 @@
 CC = clang++-17
-CFLAGS = -O3\
-	--std=c++17\
-	-Wall -Wextra -Wno-unused-variable -Werror\
-	-fopenmp\
-	-march=native
-
+CFLAGS = -O3 --std=c++17 -Wall -Wextra -Wno-unused-variable -Werror -fopenmp -march=native
 AFLAGS = -larmadillo 
+
 all: simulator.exe
 
 simulator.exe : system.o NSL_SIMULATOR.o particle.o random.o

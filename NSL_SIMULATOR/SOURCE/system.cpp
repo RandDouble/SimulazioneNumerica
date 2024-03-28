@@ -55,14 +55,21 @@ void System ::step()
 void System ::Verlet()
 {
     double xnew, ynew, znew;
-    for (int i = 0; i < _npart; i++)
-    { // Force acting on particle i
-        _fx(i) = this->Force(i, 0);
-        _fy(i) = this->Force(i, 1);
-        _fz(i) = this->Force(i, 2);
-    }
-    for (int i = 0; i < _npart; i++)
-    { // Verlet integration scheme
+    std::vector idx(_npart, 0);
+    std::iota(idx.begin(), idx.end(), 0);
+    std::for_each(std::execution::par, idx.cbegin(), idx.cend(), [&](const int &i)
+                  {
+                      _fx(i) = this->Force(i, 0);
+                      _fy(i) = this->Force(i, 1);
+                      _fz(i) = this->Force(i, 2);
+                  });
+    // for (int i = 0; i < _npart; i++)
+    // { // Force acting on particle i
+    //     _fx(i) = this->Force(i, 0);
+    //     _fy(i) = this->Force(i, 1);
+    //     _fz(i) = this->Force(i, 2);
+    // }
+    std::for_each(std::execution::par, idx.cbegin(), idx.cend(), [&](const int &i) {
         xnew = this->pbc(2.0 * _particle(i).getposition(0, true) - _particle(i).getposition(0, false) + _fx(i) * pow(_delta, 2), 0);
         ynew = this->pbc(2.0 * _particle(i).getposition(1, true) - _particle(i).getposition(1, false) + _fy(i) * pow(_delta, 2), 1);
         znew = this->pbc(2.0 * _particle(i).getposition(2, true) - _particle(i).getposition(2, false) + _fz(i) * pow(_delta, 2), 2);
@@ -73,7 +80,21 @@ void System ::Verlet()
         _particle(i).setposition(0, xnew);
         _particle(i).setposition(1, ynew);
         _particle(i).setposition(2, znew);
-    }
+    });
+
+    // for (int i = 0; i < _npart; i++)
+    // { // Verlet integration scheme
+    //     xnew = this->pbc(2.0 * _particle(i).getposition(0, true) - _particle(i).getposition(0, false) + _fx(i) * pow(_delta, 2), 0);
+    //     ynew = this->pbc(2.0 * _particle(i).getposition(1, true) - _particle(i).getposition(1, false) + _fy(i) * pow(_delta, 2), 1);
+    //     znew = this->pbc(2.0 * _particle(i).getposition(2, true) - _particle(i).getposition(2, false) + _fz(i) * pow(_delta, 2), 2);
+    //     _particle(i).setvelocity(0, this->pbc(xnew - _particle(i).getposition(0, false), 0) / (2.0 * _delta));
+    //     _particle(i).setvelocity(1, this->pbc(ynew - _particle(i).getposition(1, false), 1) / (2.0 * _delta));
+    //     _particle(i).setvelocity(2, this->pbc(znew - _particle(i).getposition(2, false), 2) / (2.0 * _delta));
+    //     _particle(i).acceptmove(); // xold = xnew
+    //     _particle(i).setposition(0, xnew);
+    //     _particle(i).setposition(1, ynew);
+    //     _particle(i).setposition(2, znew);
+    // }
     _naccepted += _npart;
     return;
 }
@@ -704,6 +725,7 @@ void System ::read_configuration()
             exit(EXIT_FAILURE);
         }
         cinf >> comment;
+
         for (int i = 0; i < _npart; i++)
         {
             cinf >> particle >> x >> y >> z; // units of coordinates in conf.xyz is _side
@@ -762,25 +784,46 @@ void System::measure()
 
     if (_measure.penergy or _measure.pressure or _measure.gofr)
     {
-        for (int i = 0; i < _npart - 1; i++)
-        {
-            for (int j = i + 1; j < _npart; j++)
-            {
-                distance(0) = this->pbc(_particle(i).getposition(0, true) - _particle(j).getposition(0, true), 0);
-                distance(1) = this->pbc(_particle(i).getposition(1, true) - _particle(j).getposition(1, true), 1);
-                distance(2) = this->pbc(_particle(i).getposition(2, true) - _particle(j).getposition(2, true), 2);
-                dr = sqrt(dot(distance, distance));
-                // GOFR ... TO BE FIXED IN EXERCISE 7
-                if (dr < _r_cut and _measure.penergy)
-                {
-                    penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
-                }
-                if (dr < _r_cut and _measure.pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
-                {
-                    virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
-                }
-            }
-        }
+        std::vector index(_npart - 1, 0);
+        iota(index.begin(), index.end(), 0);
+        
+        std::for_each(std::execution::par, index.cbegin(), index.cend(), [&](const int &part_analyzed)
+                      { 
+                    for (int other_part = part_analyzed + 1; other_part < _npart; other_part++)
+                    {
+                        distance(0) = this->pbc(_particle(part_analyzed).getposition(0, true) - _particle(other_part).getposition(0, true), 0);
+                        distance(1) = this->pbc(_particle(part_analyzed).getposition(1, true) - _particle(other_part).getposition(1, true), 1);
+                        distance(2) = this->pbc(_particle(part_analyzed).getposition(2, true) - _particle(other_part).getposition(2, true), 2);
+                        dr = sqrt(dot(distance, distance));
+                        // GOFR ... TO BE FIXED IN EXERCISE 7
+                        if (dr < _r_cut and _measure.penergy)
+                        {
+                            penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
+                        }
+                        if (dr < _r_cut and _measure.pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
+                        {
+                            virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
+                        }
+                    } });
+        // for (int i = 0; i < _npart - 1; i++)
+        // {
+        //     for (int j = i + 1; j < _npart; j++)
+        //     {
+        //         distance(0) = this->pbc(_particle(i).getposition(0, true) - _particle(j).getposition(0, true), 0);
+        //         distance(1) = this->pbc(_particle(i).getposition(1, true) - _particle(j).getposition(1, true), 1);
+        //         distance(2) = this->pbc(_particle(i).getposition(2, true) - _particle(j).getposition(2, true), 2);
+        //         dr = sqrt(dot(distance, distance));
+        //         // GOFR ... TO BE FIXED IN EXERCISE 7
+        //         if (dr < _r_cut and _measure.penergy)
+        //         {
+        //             penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
+        //         }
+        //         if (dr < _r_cut and _measure.pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
+        //         {
+        //             virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
+        //         }
+        //     }
+        // }
     }
 
     // POTENTIAL ENERGY //////////////////////////////////////////////////////////

@@ -19,6 +19,8 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #include <stdlib.h> //exit
 #include <string>
 #include <vector>
+#include <execution>
+#include <algorithm>
 
 #include "particle.h"
 #include "random.h"
