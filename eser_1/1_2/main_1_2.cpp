@@ -37,6 +37,7 @@ int main()
             el /= iter;
         }
         print_file(file_off, prefix_unif + std::to_string(iter) + ".dat", container);
+        container = std::vector(realization, 0.);
     }
 
     // Exponential
@@ -53,6 +54,7 @@ int main()
             el /= iter;
         }
         print_file(file_off, prefix_exp + std::to_string(iter) + ".dat", container);
+        container = std::vector(realization, 0.);
     }
 
     // Lorentzian
@@ -69,6 +71,7 @@ int main()
             el /= iter;
         }
         print_file(file_off, prefix_cauch + std::to_string(iter) + ".dat", container);
+        container = std::vector(realization, 0.);
     }
 
     return 0;
