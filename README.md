@@ -2,7 +2,7 @@
 
 Per alcune esigenze personali il mio PC è dotato di Clang-17 e non ho g++, ho verificato con altre macchine un filo meno portatili che tutto il codice compila anche con g++.
 Altra nota abbastanza rilevante è che tutto il codice usa lo standard [C++17](https://www.iso.org/standard/68564.html), in quanto tale non compila soltanto con C++11.
-Il codice per quanto possibile ha le funzioni commentate seguendo lo standard di Doxygen.
+Il codice per quanto possibile ha le funzioni commentate seguendo lo standard di [Doxygen](https://www.doxygen.nl).
 
 ## Tabella Esercizi Svolti
 
