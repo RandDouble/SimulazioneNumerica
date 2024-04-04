@@ -6,4 +6,5 @@ lib
 *.exe
 *.csv
 *.o
+**/OUTPUT
 nsl_simulator.tgz
