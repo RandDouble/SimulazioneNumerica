@@ -3,16 +3,16 @@
 
 #define NDEBUG
 
-#include <vector>
+#include "random.h"
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <numeric>
 #include <ostream>
 #include <string>
-#include <fstream>
-#include <algorithm>
-#include <numeric>
-#include <cmath>
-#include <iomanip>
-#include "random.h"
+#include <vector>
 
 struct values
 {
@@ -28,7 +28,7 @@ struct values
 
 std::ostream &operator<<(std::ostream &os, const values &val);
 
-void initializer(Random &rnd);
+void initializer(Random &rnd, const std::size_t rows_to_skip = 0);
 
 double calc_mean(std::vector<double> &v_el);
 double calc_mean(std::vector<double>::iterator begin, std::vector<double>::iterator end);

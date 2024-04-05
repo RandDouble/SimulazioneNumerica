@@ -1,13 +1,25 @@
 #include "utilities.h"
 
-void initializer(Random &rnd)
+void initializer(Random &rnd, const std::size_t rows_to_skip)
 {
     int seed[4];
     int p1, p2;
     std::ifstream Primes("Primes");
     if (Primes.is_open())
     {
-        Primes >> p1 >> p2;
+        for (std::size_t i = 0; i < rows_to_skip && !Primes.eof(); ++i)
+        {
+            Primes.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
+        if (!Primes.eof())
+        {
+            Primes >> p1 >> p2;
+        }
+        else
+        {
+            std::cerr << "ERROR: Failed to go to line" << rows_to_skip << " Aborting\n";
+            exit(-1);
+        }
     }
     else
         std::cerr << "PROBLEM: Unable to open Primes" << std::endl;
@@ -87,10 +99,10 @@ double calc_std(std::vector<double>::iterator begin, std::vector<double>::iterat
     double mean_squared = mean * mean;
     double result = el_squared - mean_squared;
     result /= (end - begin);
-    
-    #ifndef NDEBUG
-    std::cout << std::setw(10) << mean_squared << std::setw(10) << el_squared << std::setw(10) << (end - begin) <<"\t" << std::setw(10) << result << "\n";
-    #endif
-    
+
+#ifndef NDEBUG
+    std::cout << std::setw(10) << mean_squared << std::setw(10) << el_squared << std::setw(10) << (end - begin) << "\t" << std::setw(10) << result << "\n";
+#endif
+
     return std::sqrt(result);
 }

@@ -38,13 +38,13 @@ public:
   // Method to generate a random number in the range [0,1)
   double Rannyu(void);
   // Method to generate a random number in the range [min,max)
-  double Rannyu(double min, double max);
+  double Rannyu(const double min, const double max);
   // Method to generate a random number with a Gaussian distribution
-  double Gauss(double mean, double sigma);
+  double Gauss(const double mean, const double sigma);
   // Method to generate a random number with an Exponential distribution
-  double Exponential(double lambda);
+  double Exponential(const double lambda);
   // Method to generate a random number with a Lorentian distribution
-  double Lorenztian(double x_0, double gamma);
+  double Lorenztian(const double x_0, const double gamma);
   // Method Accept Reject for extreme case
   double AcceptReject(const double a,const double b,const double max, std::function<double(double)> PDF);
   // Method with inverse cumulative

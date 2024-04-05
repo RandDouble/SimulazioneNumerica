@@ -15,3 +15,21 @@ Vector3D Vector3D::generate_vector(Random *rng)
                                        { return std::acos(1 - 2 * r); });
     return Vector3D{std::sin(theta) * std::cos(phi), std::sin(theta) * std::sin(phi), std::cos(theta)};
 }
+
+Vector3D Vector3D::generate_unif(Random *rng, const double delta)
+{
+    double x{rng->Rannyu(-delta, delta)}, y{rng->Rannyu(-delta, delta)}, z{rng->Rannyu(-delta, delta)};
+    return Vector3D{x, y, z};
+}
+
+Vector3D Vector3D::generate_gauss(Random *rng, const double delta)
+{
+    double x{rng->Gauss(0, delta)}, y{rng->Gauss(0, delta)}, z{rng->Gauss(0, delta)};
+    return Vector3D{x, y, z};
+}
+
+std::ostream &operator<<(std::ostream &oss, const Vector3D &vec)
+{
+    oss << vec.x << ',' << vec.y << ',' << vec.z;
+    return oss;
+}

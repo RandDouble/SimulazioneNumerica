@@ -43,8 +43,3 @@ void Random_Walk::continuos_walk(const unsigned int steps)
     }
 }
 
-std::ostream &operator<<(std::ostream &oss, Vector3D vec)
-{
-    oss << vec.x << ',' << vec.y << ',' << vec.z;
-    return oss;
-}   

@@ -34,7 +34,7 @@ void Random ::SaveSeed()
    return;
 }
 
-double Random ::Gauss(double mean, double sigma)
+double Random ::Gauss(const double mean, const double sigma)
 {
    // This function generates a random number from a Gaussian distribution with given mean and sigma
    assert(sigma > 0 && "Sigma must be greater than zero\n");
@@ -44,7 +44,7 @@ double Random ::Gauss(double mean, double sigma)
    return mean + x * sigma;
 }
 
-double Random ::Rannyu(double min, double max)
+double Random ::Rannyu(const double min, const double max)
 {
    // This function generates a random number in the range [min, max)
    assert(max > min && "Max should be greather than min\n");
@@ -92,7 +92,7 @@ void Random ::SetRandom(int *s, int p1, int p2)
    return;
 }
 
-double Random::Exponential(double lambda)
+double Random::Exponential(const double lambda)
 {
    assert(lambda > 0 && "Lambda Parameter should be greater than zero\n");
    double y = Rannyu();
@@ -100,7 +100,7 @@ double Random::Exponential(double lambda)
    return r;
 }
 
-double Random::Lorenztian(double x_0, double gamma)
+double Random::Lorenztian(const double x_0, const double gamma)
 {
    assert(gamma > 0 && "Gamma should be greater than zero\n");
    double y = Rannyu();

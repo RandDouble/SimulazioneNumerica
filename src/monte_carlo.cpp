@@ -58,7 +58,6 @@ double MonteCarlo::calculate_distribution_convert(const double a, const double b
     {
         double new_element = integrand(inverse_cumulative(m_rng->Rannyu(a, b)));
         single_block = (single_block * (i - 1) + new_element) / i; // Incremental Average to reduce error due to overflow
-
     }
     single_block *= (b - a); // Calcolo Integrale, <f(x)>_a^b * (b-a)
 
