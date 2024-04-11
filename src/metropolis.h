@@ -6,7 +6,7 @@
 
 #include "random.h"
 
-#define _TEST_
+// #define _TEST_
 
 class Metropolis
 {
@@ -15,7 +15,7 @@ private:
     Random m_rng;
 
 public:
-    Metropolis(){};
+    Metropolis()=default;
 
     Random *get_rng_ptr() { return &m_rng; }
 

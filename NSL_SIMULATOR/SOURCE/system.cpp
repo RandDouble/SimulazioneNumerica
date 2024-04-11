@@ -47,7 +47,7 @@ void System ::step()
         {
             this->move(int(_rnd.Rannyu() * _npart));
         }
-    }                     // Perform a MC step on a randomly choosen particle
+    } // Perform a MC step on a randomly choosen particle
     _nattempts += _npart; // update number of attempts performed on the system
     return;
 }
@@ -61,15 +61,15 @@ void System ::Verlet()
                   {
                       _fx(i) = this->Force(i, 0);
                       _fy(i) = this->Force(i, 1);
-                      _fz(i) = this->Force(i, 2);
-                  });
+                      _fz(i) = this->Force(i, 2); });
     // for (int i = 0; i < _npart; i++)
     // { // Force acting on particle i
     //     _fx(i) = this->Force(i, 0);
     //     _fy(i) = this->Force(i, 1);
     //     _fz(i) = this->Force(i, 2);
     // }
-    std::for_each(std::execution::par, idx.cbegin(), idx.cend(), [&](const int &i) {
+    std::for_each(std::execution::par, idx.cbegin(), idx.cend(), [&](const int &i)
+                  {
         xnew = this->pbc(2.0 * _particle(i).getposition(0, true) - _particle(i).getposition(0, false) + _fx(i) * pow(_delta, 2), 0);
         ynew = this->pbc(2.0 * _particle(i).getposition(1, true) - _particle(i).getposition(1, false) + _fy(i) * pow(_delta, 2), 1);
         znew = this->pbc(2.0 * _particle(i).getposition(2, true) - _particle(i).getposition(2, false) + _fz(i) * pow(_delta, 2), 2);
@@ -79,8 +79,7 @@ void System ::Verlet()
         _particle(i).acceptmove(); // xold = xnew
         _particle(i).setposition(0, xnew);
         _particle(i).setposition(1, ynew);
-        _particle(i).setposition(2, znew);
-    });
+        _particle(i).setposition(2, znew); });
 
     // for (int i = 0; i < _npart; i++)
     // { // Verlet integration scheme
@@ -162,13 +161,16 @@ void System ::move(const int i)
 
     break;
     default:
+        std::cout << "Came to selection with unknown choice\n";
+        exit(-1);
         break;
     }
     return;
 }
 
+// Metropolis algorithm
 bool System ::metro(const int i)
-{ // Metropolis algorithm
+{
     bool decision = false;
     double delta_E, acceptance;
     if (_sim_type == SymType::LENNARD_JONES_MC)
@@ -628,7 +630,7 @@ void System ::finalize()
 void System ::write_configuration() const
 {
     ofstream coutf;
-    if (_sim_type < SymType::ISING_MRT2)
+    if (_sim_type < SymType::ISING_MRT2) // Select Lennard Jones MD or MONTECARLO
     {
         coutf.open("../OUTPUT/CONFIG/config.xyz");
         if (coutf.is_open())
@@ -650,7 +652,7 @@ void System ::write_configuration() const
         coutf.close();
         this->write_velocities();
     }
-    else
+    else // Ising Metropolis or Ising with Gibbs
     {
         coutf.open("../OUTPUT/CONFIG/config.spin");
         for (int i = 0; i < _npart; i++)
@@ -786,7 +788,7 @@ void System::measure()
     {
         std::vector index(_npart - 1, 0);
         iota(index.begin(), index.end(), 0);
-        
+
         std::for_each(std::execution::par, index.cbegin(), index.cend(), [&](const int &part_analyzed)
                       { 
                     for (int other_part = part_analyzed + 1; other_part < _npart; other_part++)
@@ -877,10 +879,26 @@ void System::measure()
 
     // MAGNETIZATION /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
+
+    if (_measure.magnet)
+    {
+        _measurement(_measure.idx_magnet) = 0;
+    }
+
     // SPECIFIC HEAT /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
+    if (_measure.cv)
+    {
+        _measurement(_measure.idx_cv) = 0.;
+    }
+
     // SUSCEPTIBILITY ////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
+    if (_measure.chi)
+    {
+        _measurement(_measure.idx_chi) = 0.;
+    }
+
     _block_av += _measurement; // Update block accumulators
 
     return;
@@ -956,10 +974,45 @@ void System ::averages(const int blk)
     // TO BE FIXED IN EXERCISE 7
     // MAGNETIZATION /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
+    if (_measure.magnet)
+    {
+        average = _average(_measure.idx_magnet);
+        sum_average = _global_av(_measure.idx_magnet);
+        sum_ave2 = _global_av2(_measure.idx_magnet);
+        _measure.stream_magnet() << setw(12) << blk
+                                 << setw(12) << average
+                                 << setw(12) << sum_average / double(blk)
+                                 << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+    }
+
     // SPECIFIC HEAT /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
+
+    if (_measure.cv)
+    {
+        average = _average(_measure.idx_cv);
+        sum_average = _global_av(_measure.idx_cv);
+        sum_ave2 = _global_av2(_measure.idx_cv);
+        _measure.stream_magnet() << setw(12) << blk
+                                 << setw(12) << average
+                                 << setw(12) << sum_average / double(blk)
+                                 << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+    }
+
     // SUSCEPTIBILITY ////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
+
+    if (_measure.chi)
+    {
+        average = _average(_measure.idx_chi);
+        sum_average = _global_av(_measure.idx_chi);
+        sum_ave2 = _global_av2(_measure.idx_chi);
+        _measure.stream_magnet() << setw(12) << blk
+                                 << setw(12) << average
+                                 << setw(12) << sum_average / double(blk)
+                                 << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+    }
+
     // ACCEPTANCE ////////////////////////////////////////////////////////////////
     double fraction;
     coutf.open("../OUTPUT/acceptance.dat", ios::app);
@@ -973,7 +1026,7 @@ void System ::averages(const int blk)
     return;
 }
 
-double System ::error(const double acc, const double acc2, const int blk)
+double System::error(const double acc, const double acc2, const int blk)
 {
     return (blk <= 1) ? 0.0 : sqrt(fabs(acc2 / double(blk) - pow(acc / double(blk), 2)) / double(blk));
 }

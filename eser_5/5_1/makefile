@@ -9,7 +9,7 @@ LOCAL_SRC_FILE = wave_function.cpp options.cpp
 # Compiler and compiler flags
 CXX=clang++-17 # Only because it support c++20 needed for other projects
 INCFLAGS= -I../../src
-CXXFLAGS= $(INCFLAGS) -Wall -Wextra -Werror -O2 -std=c++17
+CXXFLAGS= $(INCFLAGS) -g -Wall -Wextra -Werror -O2 -std=c++17
 # O2 because it can show more warning due to flow variable analisys
 # c++17 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 
