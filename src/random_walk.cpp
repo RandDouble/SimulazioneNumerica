@@ -3,7 +3,7 @@
 
 void Random_Walk::discrete_single_walk()
 {
-    int dir = static_cast<int>(std::floor(m_rng->Rannyu() * 3)) % 3;
+    int dir = static_cast<int>(std::floor(m_rng->Rannyu() * 3));
     switch (dir)
     {
     case 0: // x direction

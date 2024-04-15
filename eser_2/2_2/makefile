@@ -11,10 +11,14 @@ CXXFLAGS= $(INCFLAGS) -Wall -Wextra -Werror -O2 -std=c++17
 
 SOURCE_DIR= ../../src
 OBJ_DIR= ./obj
+
 SRC= $(addprefix $(SOURCE_DIR), $(SRC_FILES))
+HEAD= $(addprefix $(SOURCE_DIR)/, $(HEADER_FILES))
+
+
 OBJ= $(addprefix $(OBJ_DIR)/,$(addsuffix .o , $(basename $(SRC_FILES))))
 SRC += $(LOCAL_SRC_FILE)
-OBJ += $(addsuffix .o , $(basename $(LOCAL_SRC_FILE)))
+OBJ += $(addprefix $(OBJ_DIR)/, $(addsuffix .o , $(basename $(LOCAL_SRC_FILE))))
 
 .PHONY: all
 all : $(PROGNAME)
@@ -22,9 +26,16 @@ all : $(PROGNAME)
 $(PROGNAME): $(MAIN) $(OBJ)
 	$(CXX) -o $@ $(CXXFLAGS) $^ 
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cpp
+# Recipe for files in src
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cpp $(SOURCE_DIR)/%.h
 	mkdir -p $(dir $@)
 	$(CXX) -c -o $@ $(CXXFLAGS) $<
+
+# Recipe for local files
+$(OBJ_DIR)/%.o: %.cpp %.h
+	mkdir -p $(dir $@)
+	$(CXX) -c -o $@ $(CXXFLAGS) $<
+
 
 .PHONY: clean
 

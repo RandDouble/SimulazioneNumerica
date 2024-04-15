@@ -19,6 +19,8 @@ public:
     Random_Walk(double a, Vector3D start_pos, Random *rng) : m_a{a}, m_start_pos{start_pos}, m_actual_pos{start_pos}, m_rng{rng} { ; };
     ~Random_Walk() = default;
 
+    void set_rng(Random *rng) { m_rng = rng; }
+
     Vector3D get_actual_pos() const { return m_actual_pos; }
     void reset() { m_actual_pos = m_start_pos; }
     void set_start_pos(Vector3D pos) { m_start_pos = pos; }

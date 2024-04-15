@@ -30,15 +30,6 @@ all : $(PROGNAME)
 $(PROGNAME): $(MAIN) $(OBJ) $(HEAD)
 	$(CXX) -o $@ $(CXXFLAGS) $< $(OBJ)
 
-# Recipe for files in src
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cpp $(SOURCE_DIR)/%.h
-	mkdir -p $(dir $@)
-	$(CXX) -c -o $@ $(CXXFLAGS) $<
-
-# Recipe for local files
-$(OBJ_DIR)/%.o: %.cpp %.h
-	mkdir -p $(dir $@)
-	$(CXX) -c -o $@ $(CXXFLAGS) $<
 
 
 .PHONY: clean

@@ -79,7 +79,7 @@ double calc_std(std::vector<double> &v_el)
     double result = el_squared - mean_squared;
     result /= (v_el.size() - 1);
 
-    return result;
+    return std::sqrt(result);
 }
 
 double calc_std(std::vector<double>::iterator begin, std::vector<double>::iterator end)

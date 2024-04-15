@@ -1,10 +1,10 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <vector>
 
 #include "random.h"
-#include "utilities.h"
 #include "random_walk.h"
+#include "utilities.h"
 
 /*
     1. on a cubic lattice with lattice constant $a=1$;
@@ -24,13 +24,12 @@ int main()
 
     constexpr unsigned int n_time_steps = 100;
     constexpr unsigned int n_runs = 10000;
-
+    constexpr unsigned int n_blocks = n_runs / n_time_steps;
 
     // Point 1
-        
+
     // Vogliamo visualizzazioni fighe per vedere se tutto funziona
-    std::ofstream
-     f_off("random_walk_lattice.csv");
+    std::ofstream f_off("random_walk_lattice.csv");
 
     f_off << "x,y,z\n";
     for (size_t i = 0; i < n_time_steps; i++)
@@ -40,10 +39,10 @@ int main()
     }
 
     f_off.close();
+    walker.reset();
 
     // Vogliamo visualizzazioni fighe per vedere se tutto funziona
     f_off.open("random_walk_continuos.csv");
-    walker.reset();
     for (size_t i = 0; i < n_time_steps; i++)
     {
         walker.continuos_single_walk();
@@ -52,29 +51,61 @@ int main()
     f_off.close();
 
     // Adesso facciamo il vero punto.
-    std::vector res(n_runs, 0.);
-    for (size_t i = 0; i < n_runs; i++)
+    std::vector<Random_Walk> walkers;
+
+    // Resetting to origin and assigning random number generator
+    for (size_t i = 0; i < n_blocks; i++)
     {
-        walker.reset();
-        walker.discrete_walk(n_time_steps);
-        res[i] = walker.get_distance_squared_from_origin();
+        walkers.emplace_back(Random_Walk(&rng));
+    }
+    for (auto&& el : walkers)
+    {
+        el.reset();
+    }
+
+
+    std::vector res(n_time_steps, values{0., 0.});
+
+    // Discrete Walker
+    for (size_t i = 0; i < n_time_steps; i++)
+    {
+        std::vector distance(walkers.size(), 0.);
+        for (std::size_t i = 0; i < walkers.size(); i++)
+        {
+            walkers[i].discrete_single_walk();
+            distance[i] = walkers[i].get_distance_from_origin();
+        }
+
+        res[i] = {calc_mean(distance), calc_std(distance)};
     }
 
     f_off.open("result_lattice.csv");
     print_file(f_off, res);
     f_off.close();
 
-    for (size_t i = 0; i < n_runs; i++)
+    // Continuos Walker
+    // Resetting to origin
+    for (auto&& el : walkers)
     {
-        walker.reset();
-        walker.continuos_walk(n_time_steps);
-        res[i] = walker.get_distance_squared_from_origin();
+        el.reset();
     }
+
+    for (size_t i = 0; i < n_time_steps; i++)
+    {
+        std::vector distance(walkers.size(), 0.);
+        for (std::size_t i = 0; i < walkers.size(); i++)
+        {
+            walkers[i].continuos_single_walk();
+            distance[i] = walkers[i].get_distance_from_origin();
+        }
+
+        res[i] = {calc_mean(distance), calc_std(distance)};
+    }
+
 
     f_off.open("result_continuos.csv");
     print_file(f_off, res);
     f_off.close();
-
 
     return 0;
 }
