@@ -29,14 +29,15 @@ int main(int argc, char *argv[])
     SYS.initialize();
     SYS.initialize_properties();
     SYS.block_reset(0);
-    bool write_to_file = check_write_to_file(argc, argv);
-    for (int i = 0; i < SYS.get_nbl(); i++)
-    { // loop over blocks
-        for (int j = 0; j < SYS.get_nsteps(); j++)
-        { // loop over steps in a block
+    bool write_to_file = check_write_to_file(argc, argv); // Bool checking id user want to wirte resulting config to file
+
+    for (int i = 0; i < SYS.get_nbl(); i++) // loop over blocks
+    {
+        for (int j = 0; j < SYS.get_nsteps(); j++) // loop over steps in a block
+        {
             SYS.step();
             SYS.measure();
-            if (j % 10 == 0)
+            if (j % 10 == 0) // write every 10 step
             {
                 if (write_to_file)
                 {
@@ -45,7 +46,7 @@ int main(int argc, char *argv[])
                 nconf++;
             }
         }
-        SYS.averages(i + 1);
+        SYS.averages(i + 1); // Perform averages for blocks
         SYS.block_reset(i + 1);
     }
     SYS.finalize();

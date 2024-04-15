@@ -16,9 +16,13 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 using namespace std;
 using namespace arma;
 
+/// @brief Input stream operator overloading for SymType
+/// @param in Input stream
+/// @param type Output varible
+/// @return Input stream
 std::istream &operator>>(std::istream &in, SymType &type)
 {
-    int el;
+    int el; // Temporary variable to store symulation type, that in file is a number
     if (!(in >> el))
     {
         return in;
@@ -34,9 +38,9 @@ std::istream &operator>>(std::istream &in, SymType &type)
     return in;
 }
 
-void System ::step()
+/// @brief Perform a simulation step
+void System::step()
 {
-    // Perform a simulation step
     if (_sim_type == SymType::LENNARD_JONES_MD) // Perform a MD step
     {
         this->Verlet();
@@ -52,11 +56,13 @@ void System ::step()
     return;
 }
 
-void System ::Verlet()
+/// @brief Verlet Differential equation integrator
+void System::Verlet()
 {
     double xnew, ynew, znew;
     std::vector idx(_npart, 0);
     std::iota(idx.begin(), idx.end(), 0);
+    // Perform Force calculation in parallel
     std::for_each(std::execution::par, idx.cbegin(), idx.cend(), [&](const int &i)
                   {
                       _fx(i) = this->Force(i, 0);
@@ -67,7 +73,7 @@ void System ::Verlet()
     //     _fx(i) = this->Force(i, 0);
     //     _fy(i) = this->Force(i, 1);
     //     _fz(i) = this->Force(i, 2);
-    // }
+    // Change in position and velocity for each particle
     std::for_each(std::execution::par, idx.cbegin(), idx.cend(), [&](const int &i)
                   {
         xnew = this->pbc(2.0 * _particle(i).getposition(0, true) - _particle(i).getposition(0, false) + _fx(i) * pow(_delta, 2), 0);
@@ -98,6 +104,10 @@ void System ::Verlet()
     return;
 }
 
+/// @brief Calulate force acting on i-th particle in dim-th direction
+/// @param i
+/// @param dim
+/// @return
 double System::Force(const int i, const int dim)
 {
     double f = 0.0, dr;
@@ -120,39 +130,50 @@ double System::Force(const int i, const int dim)
     return f;
 }
 
+/// @brief Propose a MC move for i-th particle
+/// @param i
 void System ::move(const int i)
 {
-    // Propose a MC move for particle i
     switch (_sim_type)
     {
     case SymType::GIBBS:
-        // To be fixed in esercise 6
-        break;
-    case SymType::LENNARD_JONES_MC:
-        // M(RT)^2
-        if (_sim_type == SymType::LENNARD_JONES_MC) // LJ system
-        {
-            vec shift(_ndim); // Will store the proposed translation
-            for (int j = 0; j < _ndim; j++)
-            {
-                shift(j) = _rnd.Rannyu(-1.0, 1.0) * _delta; // uniform distribution in [-_delta;_delta)
-            }
-            _particle(i).translate(shift, _side); // Call the function Particle::translate
-            if (this->metro(i))
-            { // Metropolis acceptance evaluation
-                _particle(i).acceptmove();
-                _naccepted++;
-            }
-            else
-                _particle(i).moveback(); // If translation is rejected, restore the old configuration
-        }
+    {
+        // To be fixed in EXERCISE 6
+        // 1. Choosing spin to change at random
+        int idx_spin = static_cast<int>(std::floor(_rnd.Rannyu(0., 50.)));
+        // 2. Compute energy of nearest spins
+        int spin_sum = _particle(pbc(idx_spin - 1)).getspin() + _particle(pbc(idx_spin + 1)).getspin();
+        // 3. Compute Change
+        bool is_change = (_rnd.Rannyu() < 1. / (1. + std::exp(-2. * _beta * _J * spin_sum)));
+        if (is_change)
+            _particle(idx_spin).flip();
+    }
+    break;
 
-        break;
+    case SymType::LENNARD_JONES_MC:
+    {                     // M(RT)^2 LJ system
+        vec shift(_ndim); // Will store the proposed translation
+        for (int j = 0; j < _ndim; j++)
+        {
+            shift(j) = _rnd.Rannyu(-1.0, 1.0) * _delta; // uniform distribution in [-_delta;_delta)
+        }
+        _particle(i).translate(shift, _side); // Call the function Particle::translate
+        if (this->metro(i))
+        { // Metropolis acceptance evaluation
+            _particle(i).acceptmove();
+            _naccepted++;
+        }
+        else
+            _particle(i).moveback(); // If translation is rejected, restore the old configuration
+    }
+    break;
     case SymType::LENNARD_JONES_MD:
+        std::cerr << "Not Implemented Yet!!!\n";
+        exit(-2);
         break;
     case SymType::ISING_MRT2:
     { // Ising 1D
-        if (this->metro(i))
+        if (metro(i))
         {                        // Metropolis acceptance evaluation for a spin flip involving spin i
             _particle(i).flip(); // If accepted, the spin i is flipped
             _naccepted++;
@@ -168,19 +189,31 @@ void System ::move(const int i)
     return;
 }
 
-// Metropolis algorithm
-bool System ::metro(const int i)
+/// @brief Implements Metropolis Algorithm on u-th partcile
+/// @param i
+/// @return if step was accepted or not.
+bool System::metro(const int i)
 {
     bool decision = false;
     double delta_E, acceptance;
-    if (_sim_type == SymType::LENNARD_JONES_MC)
+    switch (_sim_type)
+    {
+    case SymType::LENNARD_JONES_MC:
         delta_E = this->Boltzmann(i, true) - this->Boltzmann(i, false);
-    else
+        break;
+
+    case SymType::ISING_MRT2:
         delta_E = 2.0 * _particle(i).getspin() *
                   (_J * (_particle(this->pbc(i - 1)).getspin() + _particle(this->pbc(i + 1)).getspin()) + _H);
+        break;
+    default:
+        std::cerr << "Came in point of metro where you should't be, Aborting\n";
+        exit(-2);
+    }
+
     acceptance = exp(-_beta * delta_E);
-    if (_rnd.Rannyu() < acceptance)
-        decision = true; // Metropolis acceptance step
+    if (_rnd.Rannyu() < acceptance) // Usually acceptace is min(1, p(new) / p(old)), with exponential this is not necessary, with this extraction, min function is achieved by _rnd.Rannyu()
+        decision = true;            // Metropolis acceptance step
     return decision;
 }
 
@@ -199,7 +232,7 @@ double System ::Boltzmann(const int i, const bool xnew)
             dr = sqrt(dr);
             if (dr < _r_cut)
             {
-                energy_i += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6);
+                energy_i += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // Potential energy calculation
             }
         }
     }
@@ -256,11 +289,12 @@ void System ::initialize()
         if (property == "SIMULATION_TYPE")
         {
             input >> _sim_type;
-            if (_sim_type > SymType::LENNARD_JONES_MC)
+            if (_sim_type > SymType::LENNARD_JONES_MC) // Ising M(RT)^2 or GIBBS
             {
                 input >> _J;
                 input >> _H;
             }
+
             switch (_sim_type)
             {
             case SymType::LENNARD_JONES_MD:
@@ -366,7 +400,8 @@ void System ::initialize()
     return;
 }
 
-void System ::initialize_velocities()
+/// @brief Inizialize velocity using config file `velocities.in`
+void System::initialize_velocities()
 {
     if (_restart and _sim_type == SymType::LENNARD_JONES_MD)
     {
@@ -442,7 +477,7 @@ void System ::initialize_velocities()
     return;
 }
 
-/// @brief Initialize data members used for measurement of properties
+/// @brief Initialize data members used for measurement of properties using config written in `properties.dat`. Also prepares files for output.
 void System ::initialize_properties()
 {
     string property;
@@ -607,18 +642,20 @@ void System ::initialize_properties()
     return;
 }
 
+/// @brief Write final config of the system to file, write all the measure requested to files, writes seed used to file.
 void System ::finalize()
 {
-    this->write_configuration();
+    this->write_configuration(); // write to file final config of the system
     _rnd.SaveSeed();
     ofstream coutf;
 
-    for (size_t i = 0; i < _measure.v_streams.size(); i++)
+    for (size_t i = 0; i < _measure.v_streams.size(); i++) // Write to files each measure result
     {
         coutf.open(_measure.output_names[i], ios::app);
         coutf << _measure.v_streams[i].str();
         coutf.close();
     }
+
     coutf.open("../OUTPUT/output.dat", ios::app);
     coutf << "Simulation completed!"
           << "\n";
@@ -626,7 +663,7 @@ void System ::finalize()
     return;
 }
 
-/// @brief Write current configuration as a .xyz file in directory ../OUTPUT/CONFIG/
+/// @brief Write current configuration as file in directory ../OUTPUT/CONFIG/, if LJ simulation or Montecarlo saves as .xyz file, else if is Ising writes a .spin file
 void System ::write_configuration() const
 {
     ofstream coutf;
@@ -687,7 +724,8 @@ void System ::write_XYZ(const int nconf) const
     return;
 }
 
-void System ::write_velocities() const
+/// @brief Write to file particle velocities.
+void System::write_velocities() const
 {
     ofstream coutf;
     coutf.open("../OUTPUT/CONFIG/velocities.out");
@@ -708,7 +746,7 @@ void System ::write_velocities() const
     return;
 }
 
-/// @brief Read configuration from a .xyz file in directory ../OUTPUT/CONFIG/
+/// @brief Read configuration from a .xyz or .spin file in directory ../INPUT/CONFIG/
 void System ::read_configuration()
 {
     ifstream cinf;
@@ -770,12 +808,12 @@ void System::block_reset(int blk)
     return;
 }
 
-/// @brief Measure properties
+/// @brief Measure properties if relative flag is checked.
 void System::measure()
 {
     _measurement.zeros();
     // POTENTIAL ENERGY, VIRIAL, GOFR ///////////////////////////////////////////
-    int bin;
+    // int bin;
     vec distance;
     distance.resize(_ndim);
     double penergy_temp = 0.0, dr = 0.0; // temporary accumulator for potential energy
@@ -849,12 +887,16 @@ void System::measure()
     // TOTAL ENERGY (kinetic+potential) //////////////////////////////////////////
     if (_measure.tenergy)
     {
-        if (_sim_type < SymType::ISING_MRT2)
+        switch (_sim_type)
         {
+        case SymType::LENNARD_JONES_MC:
+        case SymType::LENNARD_JONES_MD:
+            // std::cout << "Performing Lennard Jones Simulation\n";
             _measurement(_measure.idx_tenergy) = kenergy_temp + penergy_temp;
-        }
-        else
-        {
+            break;
+        case SymType::ISING_MRT2:
+        case SymType::GIBBS:
+            // std::cout << "Performing Ising Simulation\n";
             double s_i, s_j;
             for (int i = 0; i < _npart; i++)
             {
@@ -864,6 +906,7 @@ void System::measure()
             }
             tenergy_temp /= double(_npart);
             _measurement(_measure.idx_tenergy) = tenergy_temp;
+            break;
         }
     }
     // TEMPERATURE ///////////////////////////////////////////////////////////////
@@ -882,29 +925,46 @@ void System::measure()
 
     if (_measure.magnet)
     {
-        _measurement(_measure.idx_magnet) = 0;
+
+        for (int i = 0; i < _npart; i++)
+        {
+            double s_i = double(_particle(i).getspin());
+            magnetization += s_i;
+        }
+        magnetization /= static_cast<double>(_npart);
+        _measurement(_measure.idx_magnet) = magnetization; // this function as it is
     }
 
-    // SPECIFIC HEAT /////////////////////////////////////////////////////////////
+    // SPECIFIC HEAT //////////////////////////////////////////o///////////////////
     // TO BE FIXED IN EXERCISE 6
     if (_measure.cv)
     {
-        _measurement(_measure.idx_cv) = 0.;
+        // Saving total energy squared. The Mean calculation will happen in System::averages.
+        double tenergy_squared = (tenergy_temp * _npart) * (tenergy_temp * _npart);
+        _measurement(_measure.idx_cv) = tenergy_squared;
     }
 
     // SUSCEPTIBILITY ////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
     if (_measure.chi)
     {
-        _measurement(_measure.idx_chi) = 0.;
+        // double chi_temp = magnetization * magnetization * _beta / static_cast<double>(_npart); // this Somehow functions... lets try calcultion explicitly
+
+        double temp_chi = magnetization * magnetization * _npart;
+        // _measurement(_measure.idx_chi) = chi_temp;
+        _measurement(_measure.idx_chi) = temp_chi;
     }
+
+    // After all ifs
 
     _block_av += _measurement; // Update block accumulators
 
     return;
 }
 
-void System ::averages(const int blk)
+/// @brief Perform averages in block `blk` for each measure obtained
+/// @param blk Block index
+void System::averages(const int blk)
 {
 
     ofstream coutf;
@@ -979,10 +1039,10 @@ void System ::averages(const int blk)
         average = _average(_measure.idx_magnet);
         sum_average = _global_av(_measure.idx_magnet);
         sum_ave2 = _global_av2(_measure.idx_magnet);
-        _measure.stream_magnet() << setw(12) << blk
-                                 << setw(12) << average
-                                 << setw(12) << sum_average / double(blk)
-                                 << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_magnet() << setw(15) << blk
+                                 << setw(15) << average
+                                 << setw(15) << sum_average / double(blk)
+                                 << setw(15) << this->error(sum_average, sum_ave2, blk) << "\n";
     }
 
     // SPECIFIC HEAT /////////////////////////////////////////////////////////////
@@ -990,13 +1050,27 @@ void System ::averages(const int blk)
 
     if (_measure.cv)
     {
-        average = _average(_measure.idx_cv);
+        auto beta_squared = _beta * _beta;
+        auto tenergy_renorm_squared = _average(_measure.idx_tenergy) * _npart;
+        tenergy_renorm_squared *= tenergy_renorm_squared;
+
+        average = beta_squared * (_average(_measure.idx_cv) - tenergy_renorm_squared); //
+        average /= static_cast<double>(_npart);
+
+        // Resetting last value and recomputing with actuale average
+        _global_av(_measure.idx_cv) -= _average(_measure.idx_cv);
+        _global_av2(_measure.idx_cv) -= _average(_measure.idx_cv) * _average(_measure.idx_cv);
+
+        _global_av(_measure.idx_cv) += average;
+        _global_av2(_measure.idx_cv) += average * average;
+
+        // Output
         sum_average = _global_av(_measure.idx_cv);
         sum_ave2 = _global_av2(_measure.idx_cv);
-        _measure.stream_magnet() << setw(12) << blk
-                                 << setw(12) << average
-                                 << setw(12) << sum_average / double(blk)
-                                 << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_cv() << setw(12) << blk
+                             << setw(12) << average
+                             << setw(12) << sum_average / double(blk)
+                             << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
     }
 
     // SUSCEPTIBILITY ////////////////////////////////////////////////////////////
@@ -1004,13 +1078,22 @@ void System ::averages(const int blk)
 
     if (_measure.chi)
     {
-        average = _average(_measure.idx_chi);
+        double mean_magnetization_squared = _average(_measure.idx_magnet) * _average(_measure.idx_magnet);
+        average = _beta * (_average(_measure.idx_chi) - mean_magnetization_squared);
+
+        // Resetting last value and recomputing with actuale average
+        _global_av(_measure.idx_chi) -= _average(_measure.idx_chi);
+        _global_av2(_measure.idx_chi) -= _average(_measure.idx_chi) * _average(_measure.idx_chi);
+
+        _global_av(_measure.idx_chi) += average;
+        _global_av2(_measure.idx_chi) += average * average;
+
         sum_average = _global_av(_measure.idx_chi);
         sum_ave2 = _global_av2(_measure.idx_chi);
-        _measure.stream_magnet() << setw(12) << blk
-                                 << setw(12) << average
-                                 << setw(12) << sum_average / double(blk)
-                                 << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_chi() << setw(12) << blk
+                              << setw(12) << average
+                              << setw(12) << sum_average / double(blk)
+                              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
     }
 
     // ACCEPTANCE ////////////////////////////////////////////////////////////////
@@ -1026,6 +1109,11 @@ void System ::averages(const int blk)
     return;
 }
 
+/// @brief Perform calculation of block error as \f$ \frac{<val^2> - <val>^2}{N} \f$.
+/// @param acc First accumulator variable
+/// @param acc2 Second Accumulator variable, the accumulator in this case is the sum of the squared values
+/// @param blk number of elements in the block
+/// @return Computed error
 double System::error(const double acc, const double acc2, const int blk)
 {
     return (blk <= 1) ? 0.0 : sqrt(fabs(acc2 / double(blk) - pow(acc / double(blk), 2)) / double(blk));
