@@ -29,7 +29,7 @@ using namespace std;
 using namespace arma;
 
 
-enum class SymType : int
+enum class SimType : int
 {
     LENNARD_JONES_MD = 0,
     LENNARD_JONES_MC = 1,
@@ -37,7 +37,7 @@ enum class SymType : int
     GIBBS = 3,
 };
 
-std::istream &operator>>(std::istream &in, SymType &type);
+std::istream &operator>>(std::istream &in, SimType &type);
 
 struct measure_flags
 {
@@ -70,7 +70,7 @@ class System
 private:
     const int _ndim = 3;       // Dimensionality of the system
     bool _restart;             // Flag indicating if the simulation is restarted
-    SymType _sim_type;         // Type of simulation (e.g., Lennard-Jones, Ising)
+    SimType _sim_type;         // Type of simulation (e.g., Lennard-Jones, Ising)
     int _npart;                // Number of particles
     int _nblocks;              // Number of blocks for block averaging
     int _nsteps;               // Number of simulation steps in each block

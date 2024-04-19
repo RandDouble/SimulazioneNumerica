@@ -16,32 +16,32 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 using namespace std;
 using namespace arma;
 
-/// @brief Input stream operator overloading for SymType
+/// @brief Input stream operator overloading for SimType
 /// @param in Input stream
 /// @param type Output varible
 /// @return Input stream
-std::istream &operator>>(std::istream &in, SymType &type)
+std::istream &operator>>(std::istream &in, SimType &type)
 {
     int el; // Temporary variable to store symulation type, that in file is a number
     if (!(in >> el))
     {
         return in;
     }
-    if (el > static_cast<int>(SymType::GIBBS))
+    if (el > static_cast<int>(SimType::GIBBS))
     {
         in.setstate(in.rdstate() | std::ios::failbit);
         cerr << "PROBLEM: unknown simulation type" << endl;
         exit(EXIT_FAILURE);
     }
 
-    type = static_cast<SymType>(el);
+    type = static_cast<SimType>(el);
     return in;
 }
 
 /// @brief Perform a simulation step
 void System::step()
 {
-    if (_sim_type == SymType::LENNARD_JONES_MD) // Perform a MD step
+    if (_sim_type == SimType::LENNARD_JONES_MD) // Perform a MD step
     {
         this->Verlet();
     }
@@ -123,7 +123,7 @@ double System::Force(const int i, const int dim)
             dr = sqrt(dot(distance, distance));
             if (dr < _r_cut)
             {
-                f += distance(dim) * (48.0 / pow(dr, 14) - 24.0 / pow(dr, 8));
+                f += distance(dim) * (48.0 / pow(dr, 16) - 24.0 / pow(dr, 8));
             }
         }
     }
@@ -136,21 +136,28 @@ void System ::move(const int i)
 {
     switch (_sim_type)
     {
-    case SymType::GIBBS:
+    case SimType::GIBBS:
     {
         // To be fixed in EXERCISE 6
         // 1. Choosing spin to change at random
-        int idx_spin = static_cast<int>(std::floor(_rnd.Rannyu(0., 50.)));
+        int idx_spin = static_cast<int>(std::floor(_rnd.Rannyu(0., _npart)));
         // 2. Compute energy of nearest spins
         int spin_sum = _particle(pbc(idx_spin - 1)).getspin() + _particle(pbc(idx_spin + 1)).getspin();
+        double delta_E = _J * spin_sum + _H;
         // 3. Compute Change
-        bool is_change = (_rnd.Rannyu() < 1. / (1. + std::exp(-2. * _beta * _J * spin_sum)));
-        if (is_change)
-            _particle(idx_spin).flip();
+        bool is_plus = (_rnd.Rannyu() < 1. / (1. + std::exp(-2. * _beta * delta_E)));
+        if (is_plus)
+            _particle(idx_spin).setspin(1);
+        else
+        {
+            _particle(idx_spin).setspin(-1);
+        }
+        _particle(idx_spin).acceptmove();
+        _naccepted++;
     }
     break;
 
-    case SymType::LENNARD_JONES_MC:
+    case SimType::LENNARD_JONES_MC:
     {                     // M(RT)^2 LJ system
         vec shift(_ndim); // Will store the proposed translation
         for (int j = 0; j < _ndim; j++)
@@ -167,11 +174,11 @@ void System ::move(const int i)
             _particle(i).moveback(); // If translation is rejected, restore the old configuration
     }
     break;
-    case SymType::LENNARD_JONES_MD:
+    case SimType::LENNARD_JONES_MD:
         std::cerr << "Not Implemented Yet!!!\n";
         exit(-2);
         break;
-    case SymType::ISING_MRT2:
+    case SimType::ISING_MRT2:
     { // Ising 1D
         if (metro(i))
         {                        // Metropolis acceptance evaluation for a spin flip involving spin i
@@ -198,11 +205,11 @@ bool System::metro(const int i)
     double delta_E, acceptance;
     switch (_sim_type)
     {
-    case SymType::LENNARD_JONES_MC:
+    case SimType::LENNARD_JONES_MC:
         delta_E = this->Boltzmann(i, true) - this->Boltzmann(i, false);
         break;
 
-    case SymType::ISING_MRT2:
+    case SimType::ISING_MRT2:
         delta_E = 2.0 * _particle(i).getspin() *
                   (_J * (_particle(this->pbc(i - 1)).getspin() + _particle(this->pbc(i + 1)).getspin()) + _H);
         break;
@@ -289,7 +296,7 @@ void System ::initialize()
         if (property == "SIMULATION_TYPE")
         {
             input >> _sim_type;
-            if (_sim_type > SymType::LENNARD_JONES_MC) // Ising M(RT)^2 or GIBBS
+            if (_sim_type > SimType::LENNARD_JONES_MC) // Ising M(RT)^2 or GIBBS
             {
                 input >> _J;
                 input >> _H;
@@ -297,21 +304,29 @@ void System ::initialize()
 
             switch (_sim_type)
             {
-            case SymType::LENNARD_JONES_MD:
+            case SimType::LENNARD_JONES_MD:
                 coutf << "LJ MOLECULAR DYNAMICS (NVE) SIMULATION"
                       << "\n";
                 break;
-            case SymType::LENNARD_JONES_MC:
+            case SimType::LENNARD_JONES_MC:
                 coutf << "LJ MONTE CARLO (NVT) SIMULATION"
                       << "\n";
                 break;
-            case SymType::ISING_MRT2:
+            case SimType::ISING_MRT2:
                 coutf << "ISING 1D MONTE CARLO (MRT^2) SIMULATION"
-                      << "\n";
+                      << '\n'
+                      << "SIM_TYPE=" << setw(4) << static_cast<int>(SimType::ISING_MRT2)
+                      << setw(6) << _J
+                      << setw(6) << _H
+                      << '\n';
                 break;
-            case SymType::GIBBS:
+            case SimType::GIBBS:
                 coutf << "ISING 1D MONTE CARLO (GIBBS) SIMULATION"
-                      << "\n";
+                      << "\n"
+                      << "SIM_TYPE=" << setw(4) << static_cast<int>(SimType::GIBBS)
+                      << setw(6) << _J
+                      << setw(6) << _H
+                      << '\n';
                 break;
             }
         }
@@ -403,7 +418,7 @@ void System ::initialize()
 /// @brief Inizialize velocity using config file `velocities.in`
 void System::initialize_velocities()
 {
-    if (_restart and _sim_type == SymType::LENNARD_JONES_MD)
+    if (_restart and _sim_type == SimType::LENNARD_JONES_MD)
     {
         ifstream cinf;
         cinf.open("../INPUT/CONFIG/velocities.in");
@@ -461,7 +476,7 @@ void System::initialize_velocities()
         }
     }
 
-    if (_sim_type == SymType::LENNARD_JONES_MD)
+    if (_sim_type == SimType::LENNARD_JONES_MD)
     {
         double xold, yold, zold;
         for (int i = 0; i < _npart; i++)
@@ -502,7 +517,7 @@ void System ::initialize_properties()
                 _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));   // This will simplify some operations later
                 _measure.output_names.emplace_back("../OUTPUT/potential_energy.dat"); // This will simplify some operations later
                 index_property++;
-                _vtail = 0.0; // TO BE FIXED IN EXERCISE 7
+                _vtail = 8. * M_PI * _rho * (1. - 3 * std::pow(_r_cut, 6.)) / (9 * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
             }
             else if (property == "KINETIC_ENERGY")
             {
@@ -555,7 +570,7 @@ void System ::initialize_properties()
                 _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/pressure.dat");
                 index_property++;
-                _ptail = 0.0; // TO BE FIXED IN EXERCISE 7
+                _ptail = 16 * M_PI * _rho * (2. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
             }
             else if (property == "GOFR")
             {
@@ -667,7 +682,7 @@ void System ::finalize()
 void System ::write_configuration() const
 {
     ofstream coutf;
-    if (_sim_type < SymType::ISING_MRT2) // Select Lennard Jones MD or MONTECARLO
+    if (_sim_type < SimType::ISING_MRT2) // Select Lennard Jones MD or MONTECARLO
     {
         coutf.open("../OUTPUT/CONFIG/config.xyz");
         if (coutf.is_open())
@@ -779,7 +794,7 @@ void System ::read_configuration()
         cerr << "PROBLEM: Unable to open INPUT file config.xyz"
              << "\n";
     cinf.close();
-    if (_restart and _sim_type > SymType::LENNARD_JONES_MC)
+    if (_restart and _sim_type > SimType::LENNARD_JONES_MC)
     {
         int spin;
         cinf.open("../INPUT/CONFIG/config.spin");
@@ -822,9 +837,10 @@ void System::measure()
     double magnetization = 0.0;
     double virial = 0.0;
 
+    // VIRIAL  ////////////////////////////////////////////////////////////////////
     if (_measure.penergy or _measure.pressure or _measure.gofr)
     {
-        std::vector index(_npart - 1, 0);
+        std::vector index(_npart - 1, 0); // I want N_part - 1 elements,
         iota(index.begin(), index.end(), 0);
 
         std::for_each(std::execution::par, index.cbegin(), index.cend(), [&](const int &part_analyzed)
@@ -838,32 +854,14 @@ void System::measure()
                         // GOFR ... TO BE FIXED IN EXERCISE 7
                         if (dr < _r_cut and _measure.penergy)
                         {
-                            penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
+                            penergy_temp += 1.0 / pow(dr, 12.) - 1.0 / pow(dr, 6.); // POTENTIAL ENERGY
                         }
                         if (dr < _r_cut and _measure.pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
                         {
-                            virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
+                            virial += 1.0 / pow(dr, 12.) - 0.5 / pow(dr, 6.);
                         }
+
                     } });
-        // for (int i = 0; i < _npart - 1; i++)
-        // {
-        //     for (int j = i + 1; j < _npart; j++)
-        //     {
-        //         distance(0) = this->pbc(_particle(i).getposition(0, true) - _particle(j).getposition(0, true), 0);
-        //         distance(1) = this->pbc(_particle(i).getposition(1, true) - _particle(j).getposition(1, true), 1);
-        //         distance(2) = this->pbc(_particle(i).getposition(2, true) - _particle(j).getposition(2, true), 2);
-        //         dr = sqrt(dot(distance, distance));
-        //         // GOFR ... TO BE FIXED IN EXERCISE 7
-        //         if (dr < _r_cut and _measure.penergy)
-        //         {
-        //             penergy_temp += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // POTENTIAL ENERGY
-        //         }
-        //         if (dr < _r_cut and _measure.pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
-        //         {
-        //             virial += 1.0 / pow(dr, 12) - 0.5 / pow(dr, 6);
-        //         }
-        //     }
-        // }
     }
 
     // POTENTIAL ENERGY //////////////////////////////////////////////////////////
@@ -889,14 +887,12 @@ void System::measure()
     {
         switch (_sim_type)
         {
-        case SymType::LENNARD_JONES_MC:
-        case SymType::LENNARD_JONES_MD:
-            // std::cout << "Performing Lennard Jones Simulation\n";
+        case SimType::LENNARD_JONES_MC:
+        case SimType::LENNARD_JONES_MD:
             _measurement(_measure.idx_tenergy) = kenergy_temp + penergy_temp;
             break;
-        case SymType::ISING_MRT2:
-        case SymType::GIBBS:
-            // std::cout << "Performing Ising Simulation\n";
+        case SimType::ISING_MRT2:
+        case SimType::GIBBS:
             double s_i, s_j;
             for (int i = 0; i < _npart; i++)
             {
@@ -980,10 +976,11 @@ void System::averages(const int blk)
         average = _average(_measure.idx_penergy);
         sum_average = _global_av(_measure.idx_penergy);
         sum_ave2 = _global_av2(_measure.idx_penergy);
-        _measure.stream_penergy() << setw(12) << blk
-                                  << setw(12) << average
-                                  << setw(12) << sum_average / double(blk)
-                                  << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_penergy().precision(12);
+        _measure.stream_penergy() << setw(16) << fixed << blk
+                                  << setw(16) << fixed << average
+                                  << setw(16) << fixed << sum_average / double(blk)
+                                  << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // KINETIC ENERGY ////////////////////////////////////////////////////////////
     if (_measure.kenergy)
@@ -991,10 +988,11 @@ void System::averages(const int blk)
         average = _average(_measure.idx_kenergy);
         sum_average = _global_av(_measure.idx_kenergy);
         sum_ave2 = _global_av2(_measure.idx_kenergy);
-        _measure.stream_kenergy() << setw(12) << blk
-                                  << setw(12) << average
-                                  << setw(12) << sum_average / double(blk)
-                                  << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_kenergy().precision(12);
+        _measure.stream_kenergy() << setw(16) << fixed << blk
+                                  << setw(16) << fixed << average
+                                  << setw(16) << fixed << sum_average / double(blk)
+                                  << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // TOTAL ENERGY //////////////////////////////////////////////////////////////
     if (_measure.tenergy)
@@ -1002,10 +1000,11 @@ void System::averages(const int blk)
         average = _average(_measure.idx_tenergy);
         sum_average = _global_av(_measure.idx_tenergy);
         sum_ave2 = _global_av2(_measure.idx_tenergy);
-        _measure.stream_tenergy() << setw(12) << blk
-                                  << setw(12) << average
-                                  << setw(12) << sum_average / double(blk)
-                                  << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_tenergy().precision(12);
+        _measure.stream_tenergy() << setw(16) << fixed << blk
+                                  << setw(16) << fixed << average
+                                  << setw(16) << fixed << sum_average / double(blk)
+                                  << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // TEMPERATURE ///////////////////////////////////////////////////////////////
     if (_measure.temp)
@@ -1013,10 +1012,11 @@ void System::averages(const int blk)
         average = _average(_measure.idx_temp);
         sum_average = _global_av(_measure.idx_temp);
         sum_ave2 = _global_av2(_measure.idx_temp);
-        _measure.stream_temp() << setw(12) << blk
-                               << setw(12) << average
-                               << setw(12) << sum_average / double(blk)
-                               << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_temp().precision(12);
+        _measure.stream_temp() << setw(16) << fixed << blk
+                               << setw(16) << fixed << average
+                               << setw(16) << fixed << sum_average / double(blk)
+                               << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
@@ -1025,13 +1025,25 @@ void System::averages(const int blk)
         average = _average(_measure.idx_pressure);
         sum_average = _global_av(_measure.idx_pressure);
         sum_ave2 = _global_av2(_measure.idx_pressure);
-        _measure.stream_pressure() << setw(12) << blk
-                                   << setw(12) << average
-                                   << setw(12) << sum_average / double(blk)
-                                   << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_pressure().precision(12);
+        _measure.stream_pressure() << setw(16) << fixed << blk
+                                   << setw(16) << fixed << average
+                                   << setw(16) << fixed << sum_average / double(blk)
+                                   << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
     }
     // GOFR //////////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 7
+    if (_measure.gofr)
+    {
+        // average = _average(_measure.idx_gofr);
+        // sum_average = _global_av(_measure.idx_gofr);
+        // sum_ave2 = _global_av2(_measure.idx_gofr);
+        // _measure.stream_pressure().precision(12);
+        // _measure.stream_pressure() << setw(16) << fixed << blk
+        //                            << setw(16) << fixed << average
+        //                            << setw(16) << fixed << sum_average / double(blk)
+        //                            << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
+    }
     // MAGNETIZATION /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
     if (_measure.magnet)
@@ -1039,10 +1051,11 @@ void System::averages(const int blk)
         average = _average(_measure.idx_magnet);
         sum_average = _global_av(_measure.idx_magnet);
         sum_ave2 = _global_av2(_measure.idx_magnet);
-        _measure.stream_magnet() << setw(15) << blk
-                                 << setw(15) << average
-                                 << setw(15) << sum_average / double(blk)
-                                 << setw(15) << this->error(sum_average, sum_ave2, blk) << "\n";
+        _measure.stream_magnet().precision(12);
+        _measure.stream_magnet() << setw(16) << fixed << blk
+                                 << setw(16) << fixed << average
+                                 << setw(16) << fixed << sum_average / double(blk)
+                                 << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
     }
 
     // SPECIFIC HEAT /////////////////////////////////////////////////////////////

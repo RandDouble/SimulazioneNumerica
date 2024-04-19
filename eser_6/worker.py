@@ -14,10 +14,10 @@ TEMP_STEP: int = 50
 
 
 SIMULATIONS: list[tuple[int, float, float]] = [
-    # (2, 1.0, 0.0),
-    # (2, 1.0, 0.2),
+    (2, 1.0, 0.0),
+    (2, 1.0, 0.02),
     (3, 1.0, 0.0),
-    (3, 1.0, 0.2),
+    (3, 1.0, 0.02),
 ]
 
 SIMULATION_TYPE = {2: "METRO", 3: "GIBBS"}
@@ -104,7 +104,7 @@ def write_config(conf: Config) -> None:
 
 def move_output(conf: Config, input_dir: Path, output_dir: Path) -> None:
     conf_out = Path(
-        f"output_temp_{conf.temp:.3f}_{SIMULATION_TYPE[conf.simulation_type[0]]}_ext_field_{int(conf.simulation_type[2] * 10)}"
+        f"output_temp_{conf.temp:.3f}_{SIMULATION_TYPE[conf.simulation_type[0]]}_ext_field_{int(conf.simulation_type[2] * 100)}"
     )
     for file in input_dir.iterdir():
         if file.is_file():
@@ -137,7 +137,8 @@ def main():
             actual_config.temp = temp
             print(
                 f"Actual temperature : {actual_config.temp}\n"
-                + f"Actual Simulation : {SIMULATION_TYPE[actual_config.simulation_type[0]]}"
+                + f"Actual Simulation : {SIMULATION_TYPE[actual_config.simulation_type[0]]}\n"
+                + f"Actual Field : {actual_config.simulation_type[2]}\n"
             )
             write_config(actual_config)
             res = launch_program()
