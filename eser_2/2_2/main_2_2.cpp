@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <array>
+#include <execution>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -16,15 +19,18 @@
     the solid angle: $\theta \in [0,\pi]$ and $\phi \in [0,2\pi]$
  */
 
+std::vector<values> walking_the_walker_discrete(Random_Walk &dog, const std::size_t time_steps, const std::size_t n_throws, const std::size_t n_blocks);
+std::vector<values> walking_the_walker_continuos(Random_Walk &dog, const std::size_t time_steps, const std::size_t n_throws, const std::size_t n_blocks);
+
 int main()
 {
     Random rng;
     initializer(rng);
     Random_Walk walker(1., {0., 0., 0.}, &rng);
 
-    constexpr unsigned int n_time_steps = 100;
-    constexpr unsigned int n_runs = 10000;
-    constexpr unsigned int n_blocks = n_runs / n_time_steps;
+    constexpr std::size_t n_time_steps = 100;
+    constexpr std::size_t n_runs = 10000;
+    constexpr std::size_t n_blocks = n_runs / n_time_steps;
 
     // Point 1
 
@@ -51,61 +57,71 @@ int main()
     f_off.close();
 
     // Adesso facciamo il vero punto.
-    std::vector<Random_Walk> walkers;
-
-    // Resetting to origin and assigning random number generator
-    for (size_t i = 0; i < n_blocks; i++)
-    {
-        walkers.emplace_back(Random_Walk(&rng));
-    }
-    for (auto&& el : walkers)
-    {
-        el.reset();
-    }
-
-
-    std::vector res(n_time_steps, values{0., 0.});
-
-    // Discrete Walker
-    for (size_t i = 0; i < n_time_steps; i++)
-    {
-        std::vector distance(walkers.size(), 0.);
-        for (std::size_t i = 0; i < walkers.size(); i++)
-        {
-            walkers[i].discrete_single_walk();
-            distance[i] = walkers[i].get_distance_from_origin();
-        }
-
-        res[i] = {calc_mean(distance), calc_std(distance)};
-    }
+    // Conservo anche la posizione con 0 step eseguiti
+    std::cout << "Inizio Discreto\n";
+    auto res = walking_the_walker_discrete(walker, n_time_steps, n_runs, n_blocks);
 
     f_off.open("result_lattice.csv");
     print_file(f_off, res);
     f_off.close();
 
     // Continuos Walker
-    // Resetting to origin
-    for (auto&& el : walkers)
-    {
-        el.reset();
-    }
-
-    for (size_t i = 0; i < n_time_steps; i++)
-    {
-        std::vector distance(walkers.size(), 0.);
-        for (std::size_t i = 0; i < walkers.size(); i++)
-        {
-            walkers[i].continuos_single_walk();
-            distance[i] = walkers[i].get_distance_from_origin();
-        }
-
-        res[i] = {calc_mean(distance), calc_std(distance)};
-    }
-
-
+    std::cout << "Inizio Continuo\n";
+    res = walking_the_walker_continuos(walker, n_time_steps, n_runs, n_blocks);
     f_off.open("result_continuos.csv");
     print_file(f_off, res);
     f_off.close();
 
     return 0;
+}
+
+std::vector<values> walking_the_walker_discrete(Random_Walk &dog, const std::size_t n_time_steps, const std::size_t n_runs, const std::size_t n_blocks)
+{
+    const unsigned int throw_per_block = n_runs / n_blocks;
+    std::vector res(n_time_steps + 1, values({0., 0.}));
+
+    for (std::size_t time_step = 0; time_step <= n_time_steps; time_step++)
+    {
+        std::vector positions(n_blocks, 0.);
+        for (auto &pos : positions)
+        {
+            std::vector block_positions(throw_per_block, 0.);
+            for (auto &block_value : block_positions)
+            {
+                dog.reset();
+                dog.discrete_walk(time_step);
+                block_value = dog.get_distance_squared_from_origin();
+            }
+            pos = std::sqrt(calc_mean(block_positions));
+        }
+        res[time_step] = {calc_mean(positions), calc_std(positions)};
+    }
+    return res;
+}
+
+std::vector<values> walking_the_walker_continuos(Random_Walk &dog, const std::size_t n_time_steps, const std::size_t n_runs, const std::size_t n_blocks)
+{
+    const unsigned int throw_per_block = n_runs / n_blocks;
+
+    std::vector res(n_time_steps + 1, values({0., 0.}));
+
+    for (std::size_t time_step = 0; time_step <= n_time_steps; time_step++)
+    {
+        std::vector positions(n_blocks, 0.);
+
+        for (auto &pos : positions)
+        {
+            double position_accumulator = 0.;
+            for (std::size_t extraction = 0; extraction < throw_per_block; extraction++)
+            {
+                dog.reset();
+                dog.continuos_walk(time_step);
+                position_accumulator += dog.get_distance_squared_from_origin();
+            }
+            position_accumulator /= throw_per_block;
+            pos = sqrt(position_accumulator);
+        }
+        res[time_step] = {calc_mean(positions), calc_std(positions)};
+    }
+    return res;
 }
