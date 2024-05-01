@@ -4,7 +4,17 @@ Per alcune esigenze personali il mio PC è dotato di [Clang-17](https://clang.ll
 Altra nota abbastanza rilevante è che tutto il codice usa lo standard [C++17](https://www.iso.org/standard/68564.html), in quanto tale non compila soltanto con C++11.
 Il codice per quanto possibile ha le funzioni commentate seguendo lo standard di [Doxygen](https://www.doxygen.nl).
 
+Per compilare con g++ è necessario usare [Threading Building Block Library](www.threadingbuildingblocks.org)
+
+Usando Clang invece è necessario assicurarsi di star usando libc++ come libreria standard. Se si usa invece libstdc++ invece valgono le stesse considerazioni di g++.
+
+Clang fornito da MacOs manca completamente il supporto a una libreria standard parallela... Magari in un futuro scoprirò la bellezza di openmp e migliorerò il codice di conseguenza.
+
+Pertanto, per compilare tutto il codice basta modificare il makefile nella root directory di questo progetto inserendo il compilatore di propria preferenza e scrivere `make`.
+
 ## Tabella Esercizi Svolti
+
+I titoli dell'esercizio sono dei link ai notebook, invece i link negli elementi puntati portano al source file dell'esercizio.
 
 ### [Esercitazione 1](LSN_Exercises_01.ipynb)
 
