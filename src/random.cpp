@@ -126,6 +126,7 @@ double Random::ExternalInvCum(std::function<double(double)> ICDF)
    return ICDF(Rannyu());
 }
 
+
 /****************************************************************
 *****************************************************************
     _/    _/  _/_/_/  _/       Numerical Simulation Laboratory

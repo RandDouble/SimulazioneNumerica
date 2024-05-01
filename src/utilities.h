@@ -5,6 +5,7 @@
 
 #include "random.h"
 #include <algorithm>
+#include <execution>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -13,6 +14,12 @@
 #include <ostream>
 #include <string>
 #include <vector>
+
+#ifdef USE_PARALLEL
+#define PARALLEL std::execution::par,
+#else
+#define PARALLEL
+#endif
 
 struct values
 {

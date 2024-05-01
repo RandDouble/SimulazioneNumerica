@@ -1,6 +1,6 @@
+#include <array>
 #include <numeric>
 #include <vector>
-#include <array>
 
 #include "random.h"
 #include "vector3D.h"
@@ -14,8 +14,19 @@ private:
     Random *m_rng{nullptr};
 
 public:
+    /// @brief Initializer for Random Walk
+    /// @param rng Random Number generator
     Random_Walk(Random *rng) : m_rng{rng} { ; };
+
+    /// @brief Initializer for Random Walk
+    /// @param start_pos Starting Position
+    /// @param rng Random Number generator
     Random_Walk(Vector3D start_pos, Random *rng) : m_start_pos{start_pos}, m_actual_pos{start_pos}, m_rng{rng} { ; };
+
+    /// @brief Initializer for Random Walk
+    /// @param a Step Lenght, vector lenght for each iteration
+    /// @param start_pos Starting Position
+    /// @param rng Random Number generator
     Random_Walk(double a, Vector3D start_pos, Random *rng) : m_a{a}, m_start_pos{start_pos}, m_actual_pos{start_pos}, m_rng{rng} { ; };
     ~Random_Walk() = default;
 

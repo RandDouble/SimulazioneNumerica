@@ -10,10 +10,14 @@ Vector3D &Vector3D::operator+=(const Vector3D &rhs)
 
 Vector3D Vector3D::generate_vector(Random *rng)
 {
-    double phi = rng->Rannyu() * M_PI * 2.;
-    double theta = rng->ExternalInvCum([](double r)
-                                       { return std::acos(1 - 2 * r); });
-    return Vector3D{std::sin(theta) * std::cos(phi), std::sin(theta) * std::sin(phi), std::cos(theta)};
+    double phi = rng->Rannyu() * 2 * M_PI;
+    double theta = std::acos(1. - 2. * rng->Rannyu());
+
+    double x = std::sin(theta) * std::cos(phi);
+    double y = std::sin(theta) * std::sin(phi);
+    double z = std::cos(theta);
+
+    return Vector3D{x, y, z};
 }
 
 Vector3D Vector3D::generate_unif(Random *rng, const double delta)

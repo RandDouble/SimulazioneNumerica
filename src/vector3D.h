@@ -50,6 +50,4 @@ struct Vector3D
     friend std::ostream &operator<<(std::ostream &oss, const Vector3D& vec);
 };
 
-// std::ostream &operator<<(std::ostream &oss, Vector3D& vec);
-
 #endif // __VECTOR_3D__
