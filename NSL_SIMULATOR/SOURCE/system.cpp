@@ -228,6 +228,7 @@ double System ::Boltzmann(const int i, const bool xnew)
 {
     double energy_i = 0.0;
     double dx, dy, dz, dr;
+    // Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa sistemare un filino come codice.
     for (int j = 0; j < _npart; j++)
     {
         if (j != i)
@@ -404,7 +405,7 @@ void System ::initialize()
             break;
         }
         else
-            cerr << "PROBLEM: unknown input" << endl;
+            cerr << "PROBLEM: unknown input : "<< property << endl;
     }
     input.close();
     this->read_configuration();

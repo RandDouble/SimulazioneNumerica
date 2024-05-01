@@ -1,9 +1,25 @@
-CC = clang++-17
 CFLAGS = -O3 --std=c++17\
 		 -Wall -Wextra -Werror\
-		 -fopenmp -march=native#\
-#		 -stdlib=libc++ -fexperimental-library
-AFLAGS = -larmadillo 
+		 -fopenmp -march=native
+
+AFLAGS = -larmadillo
+
+# Choosing some option for different compilers
+
+ifeq ($(COMPILER), CLANG_LIBCPP)
+	CC = clang++-17
+	CFLAGS+= -stdlib=libc++ -fexperimental-library
+else ifeq ($(COMPILER), CLANG_GNUCPP)
+	CC = clang++-17
+	CFLAGS += -stdlib=libstc++
+	AFLAGS += -ltbb
+else ifeq ($(COMPILER), GNU)
+	CC = g++
+	AFLAGS += -ltbb
+else # Defaults to CLANG_LIBCPP
+	CC = clang++-17
+	CFLAGS+= -stdlib=libc++ -fexperimental-library
+endif
 
 all: simulator.exe
 
