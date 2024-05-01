@@ -8,8 +8,6 @@
 #include "utilities.h"
 #include "wave_function.h"
 
-// int argc, char** argv
-
 // Remember in metropolis.h there is a TEST Macro for enabling output
 
 int main()
@@ -28,7 +26,6 @@ int main()
 
     Random rng;
     initializer(rng, opt.second_initializer_row);
-
 
     const double delta = opt.delta;
 
