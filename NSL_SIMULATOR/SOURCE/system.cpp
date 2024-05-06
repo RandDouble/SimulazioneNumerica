@@ -13,7 +13,10 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #include <cstdlib>
 #include <string>
 
-using namespace std;
+#define NDEBUG_FORCE
+#define NDEBUG_TEMPERATURE_PRESSURE
+#define NDEBUG_PRESSURE
+
 using namespace arma;
 
 /// @brief Input stream operator overloading for SimType
@@ -30,7 +33,7 @@ std::istream &operator>>(std::istream &in, SimType &type)
     if (el > static_cast<int>(SimType::GIBBS))
     {
         in.setstate(in.rdstate() | std::ios::failbit);
-        cerr << "PROBLEM: unknown simulation type" << endl;
+        std::cerr << "PROBLEM: unknown simulation type" << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -41,17 +44,20 @@ std::istream &operator>>(std::istream &in, SimType &type)
 /// @brief Perform a simulation step
 void System::step()
 {
-    if (_sim_type == SimType::LENNARD_JONES_MD) // Perform a MD step
+    switch (_sim_type)
     {
-        this->Verlet();
-    }
-    else
-    {
+    case SimType::LENNARD_JONES_MD:
+        Verlet();
+        break;
+
+    default:
         for (int i = 0; i < _npart; i++)
         {
             this->move(int(_rnd.Rannyu() * _npart));
         }
-    } // Perform a MC step on a randomly choosen particle
+        break;
+    }
+
     _nattempts += _npart; // update number of attempts performed on the system
     return;
 }
@@ -113,8 +119,15 @@ double System::Force(const int i, const int dim)
     double f = 0.0, dr;
     vec distance;
     distance.resize(_ndim);
+#ifndef NDEBUG_FORCE
+    std::vector<double> force_history;
+    bool proced = false;
+#endif
     for (int j = 0; j < _npart; j++)
     {
+#ifndef NDEBUG_FORCE
+        force_history.push_back(f);
+#endif
         if (i != j)
         {
             distance(0) = this->pbc(_particle(i).getposition(0, true) - _particle(j).getposition(0, true), 0);
@@ -123,8 +136,27 @@ double System::Force(const int i, const int dim)
             dr = sqrt(dot(distance, distance));
             if (dr < _r_cut)
             {
-                f += distance(dim) * (48.0 / pow(dr, 16) - 24.0 / pow(dr, 8));
+                f += distance(dim) * (pow(dr, -16) - 0.5 * pow(dr, -8)); // Moved * 48. after for loop
+                // f += distance(dim) * (48.0 / pow(dr, 16) - 24.0 / pow(dr, 8));
             }
+
+#ifndef NDEBUG_FORCE
+            // std::cout << "Computed Force in " << dim << " direction : " << f << " on particle : " << i << '\n';
+            if (std::isnan(f) and !proced)
+            {
+                std::cout << "current distance (dir : " << dim << " ):\n"
+                          << distance << "current dr : " << dr << "\tcurrent particles (i,j) : " << i << '\t' << j << '\n'
+                          << "Calculation result : pow(dr, -16.) : " << std::pow(dr, -16.) << "\t0.5 * pow(dr, -8.) : " << 0.5 * pow(dr, -8.) << '\n'
+                          << "Increment Computed :" << distance(dim) * (pow(dr, -16.) - 0.5 * pow(dr, -8.)) << '\n'
+                          << "Actual Force : " << f << "\tin direction " << dim << '\n';
+                std::cin.get();
+
+                std::cout << "Printing force history\n";
+
+                for (auto &&past : force_history)
+                {
+                    std::cout << past << '\n';
+                }
         }
     }
     return f;
@@ -214,11 +246,11 @@ bool System::metro(const int i)
                   (_J * (_particle(this->pbc(i - 1)).getspin() + _particle(this->pbc(i + 1)).getspin()) + _H);
         break;
     default:
-        std::cerr << "Came in point of metro where you should't be, Aborting\n";
+        std::cerr << "Came in point of metro where you shouldn't be, Aborting\n";
         exit(-2);
     }
 
-    acceptance = exp(-_beta * delta_E);
+    acceptance = std::exp(-_beta * delta_E);
     if (_rnd.Rannyu() < acceptance) // Usually acceptace is min(1, p(new) / p(old)), with exponential this is not necessary, with this extraction, min function is achieved by _rnd.Rannyu()
         decision = true;            // Metropolis acceptance step
     return decision;
@@ -228,7 +260,8 @@ double System ::Boltzmann(const int i, const bool xnew)
 {
     double energy_i = 0.0;
     double dx, dy, dz, dr;
-    // Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa sistemare un filino come codice.
+// Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa sistemare un filino come codice.
+#pragma omp parallel for
     for (int j = 0; j < _npart; j++)
     {
         if (j != i)
@@ -236,15 +269,35 @@ double System ::Boltzmann(const int i, const bool xnew)
             dx = this->pbc(_particle(i).getposition(0, xnew) - _particle(j).getposition(0, 1), 0);
             dy = this->pbc(_particle(i).getposition(1, xnew) - _particle(j).getposition(1, 1), 1);
             dz = this->pbc(_particle(i).getposition(2, xnew) - _particle(j).getposition(2, 1), 2);
-            dr = dx * dx + dy * dy + dz * dz;
-            dr = sqrt(dr);
+            dr = std::hypot(dx, dy, dz);
+            // dr = dx * dx + dy * dy + dz * dz;
+            // dr = std::sqrt(dr);
             if (dr < _r_cut)
             {
-                energy_i += 1.0 / pow(dr, 12) - 1.0 / pow(dr, 6); // Potential energy calculation
+                energy_i += pow(dr, -12.) - pow(dr, -6.); // Potential energy calculation
             }
         }
     }
     return 4.0 * energy_i;
+}
+
+// @brief Print block information to stream
+void System::general_print(std::ostream &stream, const int blk, const double ave, const double sum_ave, const double sum_ave2)
+{
+    stream.precision(8);
+    stream << std::setw(8) << blk
+           << std::setw(14) << ave
+           << std::setw(14) << sum_ave / double(blk)
+           << std::setw(14) << this->error(sum_ave, sum_ave2, blk) << "\n";
+}
+
+void System::general_print(std::ostream &stream, const double blk, const double ave, const double sum_ave, const double sum_ave2)
+{
+    stream.precision(8);
+    stream << std::setw(8) << blk
+           << std::setw(14) << ave
+           << std::setw(14) << sum_ave / double(blk)
+           << std::setw(14) << this->error(sum_ave, sum_ave2, blk) << "\n";
 }
 
 /// @brief Enforce periodic boundary conditions
@@ -253,7 +306,7 @@ double System ::Boltzmann(const int i, const bool xnew)
 /// @return Reuturns position after Boudary Condition are applied
 double System::pbc(double position, int i)
 {
-    return position - _side(i) * rint(position / _side(i));
+    return position - _side(i) * std::rint(position / _side(i));
 }
 
 /// @brief Enforce periodic boundary conditions for spins
@@ -273,23 +326,23 @@ void System ::initialize()
 {
 
     int p1, p2; // Read from ../INPUT/Primes a pair of numbers to be used to initialize the RNG
-    ifstream Primes("../INPUT/Primes");
+    std::ifstream Primes("../INPUT/Primes");
     Primes >> p1 >> p2;
     Primes.close();
     int seed[4]; // Read the seed of the RNG
-    ifstream Seed("../INPUT/seed.in");
+    std::ifstream Seed("../INPUT/seed.in");
     Seed >> seed[0] >> seed[1] >> seed[2] >> seed[3];
     _rnd.SetRandom(seed, p1, p2);
 
-    ofstream couta("../OUTPUT/acceptance.dat"); // Set the heading line in file ../OUTPUT/acceptance.dat
+    std::ofstream couta("../OUTPUT/acceptance.dat"); // Set the heading line in file ../OUTPUT/acceptance.dat
     couta << "#   N_BLOCK:  ACCEPTANCE:"
           << "\n";
     couta.close();
 
-    ifstream input("../INPUT/input.dat"); // Start reading ../INPUT/input.dat
-    ofstream coutf;
+    std::ifstream input("../INPUT/input.dat"); // Start reading ../INPUT/input.dat
+    std::ofstream coutf;
     coutf.open("../OUTPUT/output.dat");
-    string property;
+    std::string property;
     double delta;
     while (!input.eof())
     {
@@ -316,17 +369,17 @@ void System ::initialize()
             case SimType::ISING_MRT2:
                 coutf << "ISING 1D MONTE CARLO (MRT^2) SIMULATION"
                       << '\n'
-                      << "SIM_TYPE=" << setw(4) << static_cast<int>(SimType::ISING_MRT2)
-                      << setw(6) << _J
-                      << setw(6) << _H
+                      << "SIM_TYPE=" << std::setw(4) << static_cast<int>(SimType::ISING_MRT2)
+                      << std::setw(6) << _J
+                      << std::setw(6) << _H
                       << '\n';
                 break;
             case SimType::GIBBS:
                 coutf << "ISING 1D MONTE CARLO (GIBBS) SIMULATION"
                       << "\n"
-                      << "SIM_TYPE=" << setw(4) << static_cast<int>(SimType::GIBBS)
-                      << setw(6) << _J
-                      << setw(6) << _H
+                      << "SIM_TYPE=" << std::setw(4) << static_cast<int>(SimType::GIBBS)
+                      << std::setw(6) << _J
+                      << std::setw(6) << _H
                       << '\n';
                 break;
             }
@@ -405,7 +458,7 @@ void System ::initialize()
             break;
         }
         else
-            cerr << "PROBLEM: unknown input : "<< property << endl;
+            std::cerr << "PROBLEM: unknown input : " << property << std::endl;
     }
     input.close();
     this->read_configuration();
@@ -421,7 +474,7 @@ void System::initialize_velocities()
 {
     if (_restart and _sim_type == SimType::LENNARD_JONES_MD)
     {
-        ifstream cinf;
+        std::ifstream cinf;
         cinf.open("../INPUT/CONFIG/velocities.in");
         if (cinf.is_open())
         {
@@ -445,9 +498,9 @@ void System::initialize_velocities()
         sumv.zeros();
         for (int i = 0; i < _npart; i++)
         {
-            vx(i) = _rnd.Gauss(0., sqrt(_temp));
-            vy(i) = _rnd.Gauss(0., sqrt(_temp));
-            vz(i) = _rnd.Gauss(0., sqrt(_temp));
+            vx(i) = _rnd.Gauss(0., std::sqrt(_temp));
+            vy(i) = _rnd.Gauss(0., std::sqrt(_temp));
+            vz(i) = _rnd.Gauss(0., std::sqrt(_temp));
             sumv(0) += vx(i);
             sumv(1) += vy(i);
             sumv(2) += vz(i);
@@ -496,11 +549,11 @@ void System::initialize_velocities()
 /// @brief Initialize data members used for measurement of properties using config written in `properties.dat`. Also prepares files for output.
 void System ::initialize_properties()
 {
-    string property;
+    std::string property;
     int index_property = 0;
     _nprop = 0;
 
-    ifstream input("../INPUT/properties.dat");
+    std::ifstream input("../INPUT/properties.dat");
     if (input.is_open())
     {
         while (!input.eof())
@@ -508,74 +561,74 @@ void System ::initialize_properties()
             input >> property;
             if (property == "POTENTIAL_ENERGY")
             {
-                ofstream coutp("../OUTPUT/potential_energy.dat");
+                std::ofstream coutp("../OUTPUT/potential_energy.dat");
                 coutp << "#     BLOCK:  ACTUAL_PE:     PE_AVE:      ERROR:"
                       << "\n";
                 coutp.close();
                 _nprop++;
                 _measure.penergy = true;
                 _measure.idx_penergy = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));   // This will simplify some operations later
-                _measure.output_names.emplace_back("../OUTPUT/potential_energy.dat"); // This will simplify some operations later
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // This will simplify some operations later
+                _measure.output_names.emplace_back("../OUTPUT/potential_energy.dat");              // This will simplify some operations later
                 index_property++;
                 _vtail = 8. * M_PI * _rho * (1. - 3 * std::pow(_r_cut, 6.)) / (9 * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
             }
             else if (property == "KINETIC_ENERGY")
             {
-                ofstream coutk("../OUTPUT/kinetic_energy.dat");
+                std::ofstream coutk("../OUTPUT/kinetic_energy.dat");
                 coutk << "#     BLOCK:   ACTUAL_KE:    KE_AVE:      ERROR:"
                       << "\n";
                 coutk.close();
                 _nprop++;
                 _measure.kenergy = true;
                 _measure.idx_kenergy = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app)); // This will simplify some operations later
-                _measure.output_names.emplace_back("../OUTPUT/kinetic_energy.dat"); // This will simplify some operations later
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // This will simplify some operations later
+                _measure.output_names.emplace_back("../OUTPUT/kinetic_energy.dat");                // This will simplify some operations later
                 index_property++;
             }
             else if (property == "TOTAL_ENERGY")
             {
-                ofstream coutt("../OUTPUT/total_energy.dat");
+                std::ofstream coutt("../OUTPUT/total_energy.dat");
                 coutt << "#     BLOCK:   ACTUAL_TE:    TE_AVE:      ERROR:"
                       << "\n";
                 coutt.close();
                 _nprop++;
                 _measure.tenergy = true;
                 _measure.idx_tenergy = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/total_energy.dat");
                 index_property++;
             }
             else if (property == "TEMPERATURE")
             {
-                ofstream coutte("../OUTPUT/temperature.dat");
+                std::ofstream coutte("../OUTPUT/temperature.dat");
                 coutte << "#     BLOCK:   ACTUAL_T:     T_AVE:       ERROR:"
                        << "\n";
                 coutte.close();
                 _nprop++;
                 _measure.temp = true;
                 _measure.idx_temp = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/temperature.dat");
                 index_property++;
             }
             else if (property == "PRESSURE")
             {
-                ofstream coutpr("../OUTPUT/pressure.dat");
+                std::ofstream coutpr("../OUTPUT/pressure.dat");
                 coutpr << "#     BLOCK:   ACTUAL_P:     P_AVE:       ERROR:"
                        << "\n";
                 coutpr.close();
                 _nprop++;
                 _measure.pressure = true;
                 _measure.idx_pressure = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/pressure.dat");
                 index_property++;
                 _ptail = 16 * M_PI * _rho * (2. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
             }
             else if (property == "GOFR")
             {
-                ofstream coutgr("../OUTPUT/gofr.dat");
+                std::ofstream coutgr("../OUTPUT/gofr.dat");
                 coutgr << "# DISTANCE:     AVE_GOFR:        ERROR:"
                        << "\n";
                 coutgr.close();
@@ -584,52 +637,52 @@ void System ::initialize_properties()
                 _bin_size = (_halfside.min()) / (double)_n_bins;
                 _measure.gofr = true;
                 _measure.idx_gofr = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/gofr.dat");
                 index_property += _n_bins;
             }
             else if (property == "MAGNETIZATION")
             {
-                ofstream coutpr("../OUTPUT/magnetization.dat");
+                std::ofstream coutpr("../OUTPUT/magnetization.dat");
                 coutpr << "#     BLOCK:   ACTUAL_M:     M_AVE:       ERROR:"
                        << "\n";
                 coutpr.close();
                 _nprop++;
                 _measure.magnet = true;
                 _measure.idx_magnet = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/magnetization.dat");
                 index_property++;
             }
             else if (property == "SPECIFIC_HEAT")
             {
-                ofstream coutpr("../OUTPUT/specific_heat.dat");
+                std::ofstream coutpr("../OUTPUT/specific_heat.dat");
                 coutpr << "#     BLOCK:   ACTUAL_CV:    CV_AVE:      ERROR:"
                        << "\n";
                 coutpr.close();
                 _nprop++;
                 _measure.cv = true;
                 _measure.idx_cv = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/specific_heat.dat");
                 index_property++;
             }
             else if (property == "SUSCEPTIBILITY")
             {
-                ofstream coutpr("../OUTPUT/susceptibility.dat");
+                std::ofstream coutpr("../OUTPUT/susceptibility.dat");
                 coutpr << "#     BLOCK:   ACTUAL_X:     X_AVE:       ERROR:"
                        << "\n";
                 coutpr.close();
                 _nprop++;
                 _measure.chi = true;
                 _measure.idx_chi = index_property;
-                _measure.v_streams.emplace_back(stringstream(ios::out | ios::app));
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/susceptibility.dat");
                 index_property++;
             }
             else if (property == "ENDPROPERTIES")
             {
-                ofstream coutf;
+                std::ofstream coutf;
                 coutf.open("../OUTPUT/output.dat", ios::app);
                 coutf << "Reading properties completed!"
                       << "\n";
@@ -663,16 +716,16 @@ void System ::finalize()
 {
     this->write_configuration(); // write to file final config of the system
     _rnd.SaveSeed();
-    ofstream coutf;
+    std::ofstream coutf;
 
     for (size_t i = 0; i < _measure.v_streams.size(); i++) // Write to files each measure result
     {
-        coutf.open(_measure.output_names[i], ios::app);
+        coutf.open(_measure.output_names[i], std::ios::app);
         coutf << _measure.v_streams[i].str();
         coutf.close();
     }
 
-    coutf.open("../OUTPUT/output.dat", ios::app);
+    coutf.open("../OUTPUT/output.dat", std::ios::app);
     coutf << "Simulation completed!"
           << "\n";
     coutf.close();
@@ -682,7 +735,7 @@ void System ::finalize()
 /// @brief Write current configuration as file in directory ../OUTPUT/CONFIG/, if LJ simulation or Montecarlo saves as .xyz file, else if is Ising writes a .spin file
 void System ::write_configuration() const
 {
-    ofstream coutf;
+    std::ofstream coutf;
     if (_sim_type < SimType::ISING_MRT2) // Select Lennard Jones MD or MONTECARLO
     {
         coutf.open("../OUTPUT/CONFIG/config.xyz");
@@ -695,9 +748,9 @@ void System ::write_configuration() const
             {
                 coutf << "LJ"
                       << "  "
-                      << setw(16) << _particle(i).getposition(0, true) / _side(0)          // x
-                      << setw(16) << _particle(i).getposition(1, true) / _side(1)          // y
-                      << setw(16) << _particle(i).getposition(2, true) / _side(2) << "\n"; // z
+                      << std::setw(16) << _particle(i).getposition(0, true) / _side(0)          // x
+                      << std::setw(16) << _particle(i).getposition(1, true) / _side(1)          // y
+                      << std::setw(16) << _particle(i).getposition(2, true) / _side(2) << "\n"; // z
             }
         }
         else
@@ -719,8 +772,8 @@ void System ::write_configuration() const
 /// @param nconf
 void System ::write_XYZ(const int nconf) const
 {
-    ofstream coutf;
-    coutf.open("../OUTPUT/CONFIG/config_" + to_string(nconf) + ".xyz");
+    std::ofstream coutf;
+    coutf.open("../OUTPUT/CONFIG/config_" + std::to_string(nconf) + ".xyz");
     if (coutf.is_open())
     {
         coutf << _npart << "\n";
@@ -729,9 +782,9 @@ void System ::write_XYZ(const int nconf) const
         {
             coutf << "LJ"
                   << "  "
-                  << setw(16) << _particle(i).getposition(0, true)          // x
-                  << setw(16) << _particle(i).getposition(1, true)          // y
-                  << setw(16) << _particle(i).getposition(2, true) << "\n"; // z
+                  << std::setw(16) << _particle(i).getposition(0, true)          // x
+                  << std::setw(16) << _particle(i).getposition(1, true)          // y
+                  << std::setw(16) << _particle(i).getposition(2, true) << "\n"; // z
         }
     }
     else
@@ -743,15 +796,15 @@ void System ::write_XYZ(const int nconf) const
 /// @brief Write to file particle velocities.
 void System::write_velocities() const
 {
-    ofstream coutf;
+    std::ofstream coutf;
     coutf.open("../OUTPUT/CONFIG/velocities.out");
     if (coutf.is_open())
     {
         for (int i = 0; i < _npart; i++)
         {
-            coutf << setw(16) << _particle(i).getvelocity(0)          // vx
-                  << setw(16) << _particle(i).getvelocity(1)          // vy
-                  << setw(16) << _particle(i).getvelocity(2) << "\n"; // vz
+            coutf << std::setw(16) << _particle(i).getvelocity(0)          // vx
+                  << std::setw(16) << _particle(i).getvelocity(1)          // vy
+                  << std::setw(16) << _particle(i).getvelocity(2) << "\n"; // vz
         }
     }
     else
@@ -765,12 +818,12 @@ void System::write_velocities() const
 /// @brief Read configuration from a .xyz or .spin file in directory ../INPUT/CONFIG/
 void System ::read_configuration()
 {
-    ifstream cinf;
+    std::ifstream cinf;
     cinf.open("../INPUT/CONFIG/config.xyz");
     if (cinf.is_open())
     {
-        string comment;
-        string particle;
+        std::string comment;
+        std::string particle;
         double x, y, z;
         int ncoord;
         cinf >> ncoord;
@@ -813,7 +866,7 @@ void System ::read_configuration()
 /// @param blk
 void System::block_reset(int blk)
 {
-    ofstream coutf;
+    std::ofstream coutf;
     if (blk > 0)
     {
         coutf.open("../OUTPUT/output.dat", ios::app);
@@ -909,6 +962,7 @@ void System::measure()
     // TEMPERATURE ///////////////////////////////////////////////////////////////
     if (_measure.temp and _measure.kenergy)
         _measurement(_measure.idx_temp) = (2.0 / 3.0) * kenergy_temp;
+
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
     if (_measure.pressure and _measure.temp)
@@ -964,7 +1018,7 @@ void System::measure()
 void System::averages(const int blk)
 {
 
-    ofstream coutf;
+    std::ofstream coutf;
     double average, sum_average, sum_ave2;
 
     _average = _block_av / double(_nsteps);
@@ -977,11 +1031,7 @@ void System::averages(const int blk)
         average = _average(_measure.idx_penergy);
         sum_average = _global_av(_measure.idx_penergy);
         sum_ave2 = _global_av2(_measure.idx_penergy);
-        _measure.stream_penergy().precision(12);
-        _measure.stream_penergy() << setw(16) << fixed << blk
-                                  << setw(16) << fixed << average
-                                  << setw(16) << fixed << sum_average / double(blk)
-                                  << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
+        general_print(_measure.stream_penergy(), blk, average, sum_average, sum_ave2);
     }
     // KINETIC ENERGY ////////////////////////////////////////////////////////////
     if (_measure.kenergy)
@@ -989,11 +1039,7 @@ void System::averages(const int blk)
         average = _average(_measure.idx_kenergy);
         sum_average = _global_av(_measure.idx_kenergy);
         sum_ave2 = _global_av2(_measure.idx_kenergy);
-        _measure.stream_kenergy().precision(12);
-        _measure.stream_kenergy() << setw(16) << fixed << blk
-                                  << setw(16) << fixed << average
-                                  << setw(16) << fixed << sum_average / double(blk)
-                                  << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
+        general_print(_measure.stream_kenergy(), blk, average, sum_average, sum_ave2);
     }
     // TOTAL ENERGY //////////////////////////////////////////////////////////////
     if (_measure.tenergy)
@@ -1001,11 +1047,7 @@ void System::averages(const int blk)
         average = _average(_measure.idx_tenergy);
         sum_average = _global_av(_measure.idx_tenergy);
         sum_ave2 = _global_av2(_measure.idx_tenergy);
-        _measure.stream_tenergy().precision(12);
-        _measure.stream_tenergy() << setw(16) << fixed << blk
-                                  << setw(16) << fixed << average
-                                  << setw(16) << fixed << sum_average / double(blk)
-                                  << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
+        general_print(_measure.stream_tenergy(), blk, average, sum_average, sum_ave2);
     }
     // TEMPERATURE ///////////////////////////////////////////////////////////////
     if (_measure.temp)
@@ -1013,24 +1055,19 @@ void System::averages(const int blk)
         average = _average(_measure.idx_temp);
         sum_average = _global_av(_measure.idx_temp);
         sum_ave2 = _global_av2(_measure.idx_temp);
-        _measure.stream_temp().precision(12);
-        _measure.stream_temp() << setw(16) << fixed << blk
-                               << setw(16) << fixed << average
-                               << setw(16) << fixed << sum_average / double(blk)
-                               << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
+        general_print(_measure.stream_temp(), blk, average, sum_average, sum_ave2);
     }
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
     if (_measure.pressure)
     {
+#ifndef NDEBUG_PRESSURE
+        std::cout << "Pressione Media Blocco : " << _average(_measure.idx_pressure) << "\n";
+#endif
         average = _average(_measure.idx_pressure);
         sum_average = _global_av(_measure.idx_pressure);
         sum_ave2 = _global_av2(_measure.idx_pressure);
-        _measure.stream_pressure().precision(12);
-        _measure.stream_pressure() << setw(16) << fixed << blk
-                                   << setw(16) << fixed << average
-                                   << setw(16) << fixed << sum_average / double(blk)
-                                   << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
+        general_print(_measure.stream_pressure(), blk, average, sum_average, sum_ave2);
     }
     // GOFR //////////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 7
@@ -1052,11 +1089,7 @@ void System::averages(const int blk)
         average = _average(_measure.idx_magnet);
         sum_average = _global_av(_measure.idx_magnet);
         sum_ave2 = _global_av2(_measure.idx_magnet);
-        _measure.stream_magnet().precision(12);
-        _measure.stream_magnet() << setw(16) << fixed << blk
-                                 << setw(16) << fixed << average
-                                 << setw(16) << fixed << sum_average / double(blk)
-                                 << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
+        general_print(_measure.stream_magnet(), blk, average, sum_average, sum_ave2);
     }
 
     // SPECIFIC HEAT /////////////////////////////////////////////////////////////
@@ -1081,10 +1114,7 @@ void System::averages(const int blk)
         // Output
         sum_average = _global_av(_measure.idx_cv);
         sum_ave2 = _global_av2(_measure.idx_cv);
-        _measure.stream_cv() << setw(12) << blk
-                             << setw(12) << average
-                             << setw(12) << sum_average / double(blk)
-                             << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        general_print(_measure.stream_cv(), blk, average, sum_average, sum_ave2);
     }
 
     // SUSCEPTIBILITY ////////////////////////////////////////////////////////////
@@ -1104,10 +1134,7 @@ void System::averages(const int blk)
 
         sum_average = _global_av(_measure.idx_chi);
         sum_ave2 = _global_av2(_measure.idx_chi);
-        _measure.stream_chi() << setw(12) << blk
-                              << setw(12) << average
-                              << setw(12) << sum_average / double(blk)
-                              << setw(12) << this->error(sum_average, sum_ave2, blk) << "\n";
+        general_print(_measure.stream_chi(), blk, average, sum_average, sum_ave2);
     }
 
     // ACCEPTANCE ////////////////////////////////////////////////////////////////
@@ -1117,7 +1144,7 @@ void System::averages(const int blk)
         fraction = double(_naccepted) / double(_nattempts);
     else
         fraction = 0.0;
-    coutf << setw(12) << blk << setw(12) << fraction << "\n";
+    coutf << std::setw(12) << blk << std::setw(12) << fraction << "\n";
     coutf.close();
 
     return;
