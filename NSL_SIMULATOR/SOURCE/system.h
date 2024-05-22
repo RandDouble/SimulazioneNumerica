@@ -11,7 +11,9 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #ifndef __System__
 #define __System__
 
+#include <algorithm>
 #include <armadillo>
+#include <execution>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -19,15 +21,11 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #include <stdlib.h> //exit
 #include <string>
 #include <vector>
-#include <execution>
-#include <algorithm>
 
 #include "particle.h"
 #include "random.h"
 
-using namespace std;
 using namespace arma;
-
 
 enum class SimType : int
 {
@@ -47,21 +45,20 @@ struct measure_flags
     int idx_penergy{0}, idx_kenergy{0}, idx_tenergy{0};  // Indices for accessing energy-related properties in vec _measurement
     int idx_temp{0}, idx_pressure{0}, idx_gofr{0};       // Indices for accessing temperature, pressure, and radial dist. function
     int idx_magnet{0}, idx_cv{0}, idx_chi{0};            // Indices for accessing magnetization, heat capacity, and susceptibility
-    vector<stringstream> v_streams;                      // Vector containing stream to output to file
-    vector<string> output_names;                         // Vector containing names of output files
+    std::vector<std::stringstream> v_streams;            // Vector containing stream to output to file
+    std::vector<std::string> output_names;               // Vector containing names of output files
 
-    stringstream &stream_penergy() { return v_streams[idx_penergy]; } // Streams for outputting without opening 1000 times a file
-    stringstream &stream_kenergy() { return v_streams[idx_kenergy]; }
-    stringstream &stream_tenergy() { return v_streams[idx_tenergy]; }
-    stringstream &stream_temp() { return v_streams[idx_temp]; }
-    stringstream &stream_pressure() { return v_streams[idx_pressure]; }
-    stringstream &stream_gofr() { return v_streams[idx_gofr]; }
-    stringstream &stream_magnet() { return v_streams[idx_magnet]; }
-    stringstream &stream_cv() { return v_streams[idx_cv]; }
-    stringstream &stream_chi() { return v_streams[idx_chi]; }
+    std::stringstream &stream_penergy() { return v_streams[idx_penergy]; } // Streams for outputting without opening 1000 times a file
+    std::stringstream &stream_kenergy() { return v_streams[idx_kenergy]; }
+    std::stringstream &stream_tenergy() { return v_streams[idx_tenergy]; }
+    std::stringstream &stream_temp() { return v_streams[idx_temp]; }
+    std::stringstream &stream_pressure() { return v_streams[idx_pressure]; }
+    std::stringstream &stream_gofr() { return v_streams[idx_gofr]; }
+    std::stringstream &stream_magnet() { return v_streams[idx_magnet]; }
+    std::stringstream &stream_cv() { return v_streams[idx_cv]; }
+    std::stringstream &stream_chi() { return v_streams[idx_chi]; }
 
     measure_flags() = default;
-
 };
 
 class System
@@ -79,6 +76,7 @@ private:
     double _temp, _beta;       // Temperature and inverse temperature
     double _rho, _volume;      // Density and volume of the system
     double _r_cut;             // Cutoff radius for pair interactions
+    double _r_cut_squared;     // Square of cutoff radius for pair interactions
     double _delta;             // Displacement step for particle moves
     double _J, _H;             // Parameters for the Ising Hamiltonian
     vec _side;                 // Box dimensions
@@ -122,6 +120,8 @@ public:                                                               // Functio
     void Verlet();                                                    // Perform Verlet integration step
     double Force(const int i, const int dim);                         // Calculate force on a particle along a dimension
     double Boltzmann(const int i, const bool xnew);                   // Calculate Boltzmann factor for Metropolis acceptance
+    void general_print(std::ostream &stream, const int blk, const double ave, const double sum_ave, const double sum_ave2);
+    void general_print(std::ostream &stream, const double blk, const double ave, const double sum_ave, const double sum_ave2);
 };
 
 #endif // __System__

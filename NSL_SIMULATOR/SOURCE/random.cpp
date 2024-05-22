@@ -48,7 +48,7 @@ double Random ::Rannyu(double min, double max)
 
 double Random ::Rannyu(void)
 {
-    const double twom12 = 0.000244140625;
+    constexpr double twom12 = 0.000244140625;
     int i1, i2, i3, i4;
     double r;
 
@@ -69,10 +69,7 @@ double Random ::Rannyu(void)
 
 void Random ::SetRandom(int *s, int p1, int p2)
 {
-    m1 = 502;
-    m2 = 1521;
-    m3 = 4071;
-    m4 = 2107;
+
     l1 = s[0];
     l2 = s[1];
     l3 = s[2];

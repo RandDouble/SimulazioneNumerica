@@ -4,7 +4,7 @@ Per alcune esigenze personali il mio PC è dotato di [Clang-17](https://clang.ll
 Altra nota abbastanza rilevante è che tutto il codice usa lo standard [C++17](https://www.iso.org/standard/68564.html), in quanto tale non compila soltanto con C++11.
 Il codice per quanto possibile ha le funzioni commentate seguendo lo standard di [Doxygen](https://www.doxygen.nl).
 
-Per compilare con g++ è necessario usare [Threading Building Block Library](www.threadingbuildingblocks.org)
+Per compilare con g++ è necessario usare [Threading Building Block Library](https://www.threadingbuildingblocks.org)
 
 Usando Clang invece è necessario assicurarsi di star usando libc++ come libreria standard. Se si usa invece libstdc++ invece valgono le stesse considerazioni di g++.
 

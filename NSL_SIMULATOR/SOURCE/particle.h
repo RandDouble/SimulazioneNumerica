@@ -14,7 +14,6 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #include "random.h"
 #include <armadillo>
 
-using namespace std;
 using namespace arma;
 
 class Particle

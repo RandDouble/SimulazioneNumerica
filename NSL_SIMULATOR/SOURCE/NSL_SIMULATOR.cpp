@@ -11,7 +11,7 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #include "system.h"
 #include <iostream>
 
-using namespace std;
+#define NDEBUG
 
 /// @brief Function for parsing command line option, it can be extended
 /// @param argc
@@ -36,6 +36,11 @@ int main(int argc, char *argv[])
         for (int j = 0; j < SYS.get_nsteps(); j++) // loop over steps in a block
         {
             SYS.step();
+
+#ifndef NDEBUG
+            std::cout << "Actual step : " << j << "\n";
+#endif // NDEBUG
+
             SYS.measure();
             if (j % 10 == 0) // write every 10 step
             {
@@ -45,7 +50,7 @@ int main(int argc, char *argv[])
                 }
                 nconf++;
             }
-        }
+                }
         SYS.averages(i + 1); // Perform averages for blocks
         SYS.block_reset(i + 1);
     }

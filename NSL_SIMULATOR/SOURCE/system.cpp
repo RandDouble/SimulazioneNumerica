@@ -65,47 +65,35 @@ void System::step()
 /// @brief Verlet Differential equation integrator
 void System::Verlet()
 {
-    double xnew, ynew, znew;
-    std::vector idx(_npart, 0);
-    std::iota(idx.begin(), idx.end(), 0);
-    // Perform Force calculation in parallel
-    std::for_each(std::execution::par, idx.cbegin(), idx.cend(), [&](const int &i)
-                  {
-                      _fx(i) = this->Force(i, 0);
-                      _fy(i) = this->Force(i, 1);
-                      _fz(i) = this->Force(i, 2); });
-    // for (int i = 0; i < _npart; i++)
-    // { // Force acting on particle i
-    //     _fx(i) = this->Force(i, 0);
-    //     _fy(i) = this->Force(i, 1);
-    //     _fz(i) = this->Force(i, 2);
+
+#pragma omp parallel for ordered
+    for (int i = 0; i < _npart; i++)
+    { // Force acting on particle i
+        _fx(i) = this->Force(i, 0);
+        _fy(i) = this->Force(i, 1);
+        _fz(i) = this->Force(i, 2);
+    }
+
     // Change in position and velocity for each particle
-    std::for_each(std::execution::par, idx.cbegin(), idx.cend(), [&](const int &i)
-                  {
-        xnew = this->pbc(2.0 * _particle(i).getposition(0, true) - _particle(i).getposition(0, false) + _fx(i) * pow(_delta, 2), 0);
-        ynew = this->pbc(2.0 * _particle(i).getposition(1, true) - _particle(i).getposition(1, false) + _fy(i) * pow(_delta, 2), 1);
-        znew = this->pbc(2.0 * _particle(i).getposition(2, true) - _particle(i).getposition(2, false) + _fz(i) * pow(_delta, 2), 2);
+    // Do not ask why, but this section when launched with openmp causes  to get only nans...
+    // suspect of various entities reading from memory at the same time
+#pragma omp barrier
+
+#pragma omp parallel for
+    for (int i = 0; i < _npart; i++)
+    { // Verlet integration scheme
+        double xnew = this->pbc(2.0 * _particle(i).getposition(0, true) - _particle(i).getposition(0, false) + _fx(i) * pow(_delta, 2), 0);
+        double ynew = this->pbc(2.0 * _particle(i).getposition(1, true) - _particle(i).getposition(1, false) + _fy(i) * pow(_delta, 2), 1);
+        double znew = this->pbc(2.0 * _particle(i).getposition(2, true) - _particle(i).getposition(2, false) + _fz(i) * pow(_delta, 2), 2);
         _particle(i).setvelocity(0, this->pbc(xnew - _particle(i).getposition(0, false), 0) / (2.0 * _delta));
         _particle(i).setvelocity(1, this->pbc(ynew - _particle(i).getposition(1, false), 1) / (2.0 * _delta));
         _particle(i).setvelocity(2, this->pbc(znew - _particle(i).getposition(2, false), 2) / (2.0 * _delta));
         _particle(i).acceptmove(); // xold = xnew
         _particle(i).setposition(0, xnew);
         _particle(i).setposition(1, ynew);
-        _particle(i).setposition(2, znew); });
+        _particle(i).setposition(2, znew);
+    }
 
-    // for (int i = 0; i < _npart; i++)
-    // { // Verlet integration scheme
-    //     xnew = this->pbc(2.0 * _particle(i).getposition(0, true) - _particle(i).getposition(0, false) + _fx(i) * pow(_delta, 2), 0);
-    //     ynew = this->pbc(2.0 * _particle(i).getposition(1, true) - _particle(i).getposition(1, false) + _fy(i) * pow(_delta, 2), 1);
-    //     znew = this->pbc(2.0 * _particle(i).getposition(2, true) - _particle(i).getposition(2, false) + _fz(i) * pow(_delta, 2), 2);
-    //     _particle(i).setvelocity(0, this->pbc(xnew - _particle(i).getposition(0, false), 0) / (2.0 * _delta));
-    //     _particle(i).setvelocity(1, this->pbc(ynew - _particle(i).getposition(1, false), 1) / (2.0 * _delta));
-    //     _particle(i).setvelocity(2, this->pbc(znew - _particle(i).getposition(2, false), 2) / (2.0 * _delta));
-    //     _particle(i).acceptmove(); // xold = xnew
-    //     _particle(i).setposition(0, xnew);
-    //     _particle(i).setposition(1, ynew);
-    //     _particle(i).setposition(2, znew);
-    // }
     _naccepted += _npart;
     return;
 }
@@ -116,7 +104,7 @@ void System::Verlet()
 /// @return
 double System::Force(const int i, const int dim)
 {
-    double f = 0.0, dr;
+    double f = 0.0;
     vec distance;
     distance.resize(_ndim);
 #ifndef NDEBUG_FORCE
@@ -133,12 +121,10 @@ double System::Force(const int i, const int dim)
             distance(0) = this->pbc(_particle(i).getposition(0, true) - _particle(j).getposition(0, true), 0);
             distance(1) = this->pbc(_particle(i).getposition(1, true) - _particle(j).getposition(1, true), 1);
             distance(2) = this->pbc(_particle(i).getposition(2, true) - _particle(j).getposition(2, true), 2);
-            dr = sqrt(dot(distance, distance));
-            if (dr < _r_cut)
-            {
-                f += distance(dim) * (pow(dr, -16) - 0.5 * pow(dr, -8)); // Moved * 48. after for loop
-                // f += distance(dim) * (48.0 / pow(dr, 16) - 24.0 / pow(dr, 8));
-            }
+            double dr_square = dot(distance, distance);
+
+            f += (dr_square < _r_cut_squared) * distance(dim) * (pow(dr_square, -7.) - 0.5 * pow(dr_square, -4.)); // Moved * 48. after for loop
+                                                                                                                   // f += distance(dim) * (48.0 / pow(dr, 14) - 24.0 / pow(dr, 8));
 
 #ifndef NDEBUG_FORCE
             // std::cout << "Computed Force in " << dim << " direction : " << f << " on particle : " << i << '\n';
@@ -157,8 +143,15 @@ double System::Force(const int i, const int dim)
                 {
                     std::cout << past << '\n';
                 }
+
+                auto res = std::cin.get();
+                proced = (res == ' ');
+            }
+#endif // NDEBUG_FORCE
         }
     }
+    f *= 48.;
+
     return f;
 }
 
@@ -173,17 +166,15 @@ void System ::move(const int i)
         // To be fixed in EXERCISE 6
         // 1. Choosing spin to change at random
         int idx_spin = static_cast<int>(std::floor(_rnd.Rannyu(0., _npart)));
+
         // 2. Compute energy of nearest spins
         int spin_sum = _particle(pbc(idx_spin - 1)).getspin() + _particle(pbc(idx_spin + 1)).getspin();
         double delta_E = _J * spin_sum + _H;
         // 3. Compute Change
-        bool is_plus = (_rnd.Rannyu() < 1. / (1. + std::exp(-2. * _beta * delta_E)));
-        if (is_plus)
-            _particle(idx_spin).setspin(1);
-        else
-        {
-            _particle(idx_spin).setspin(-1);
-        }
+        int new_spin = (_rnd.Rannyu() < (1. / (1. + std::exp(-2. * _beta * delta_E)))) ? 1 : -1;
+
+        _particle(idx_spin).setspin(new_spin);
+
         _particle(idx_spin).acceptmove();
         _naccepted++;
     }
@@ -233,7 +224,6 @@ void System ::move(const int i)
 /// @return if step was accepted or not.
 bool System::metro(const int i)
 {
-    bool decision = false;
     double delta_E, acceptance;
     switch (_sim_type)
     {
@@ -251,34 +241,34 @@ bool System::metro(const int i)
     }
 
     acceptance = std::exp(-_beta * delta_E);
-    if (_rnd.Rannyu() < acceptance) // Usually acceptace is min(1, p(new) / p(old)), with exponential this is not necessary, with this extraction, min function is achieved by _rnd.Rannyu()
-        decision = true;            // Metropolis acceptance step
+    // Usually acceptace is min(1, p(new) / p(old)), with exponential this is not necessary, with this extraction, min function is achieved by _rnd.Rannyu()
+    bool decision = (_rnd.Rannyu() < acceptance); // Metropolis acceptance step
+
     return decision;
 }
 
 double System ::Boltzmann(const int i, const bool xnew)
 {
     double energy_i = 0.0;
-    double dx, dy, dz, dr;
+    // double dx, dy, dz, dr;
 // Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa sistemare un filino come codice.
 #pragma omp parallel for
     for (int j = 0; j < _npart; j++)
     {
         if (j != i)
         {
-            dx = this->pbc(_particle(i).getposition(0, xnew) - _particle(j).getposition(0, 1), 0);
-            dy = this->pbc(_particle(i).getposition(1, xnew) - _particle(j).getposition(1, 1), 1);
-            dz = this->pbc(_particle(i).getposition(2, xnew) - _particle(j).getposition(2, 1), 2);
-            dr = std::hypot(dx, dy, dz);
-            // dr = dx * dx + dy * dy + dz * dz;
+            double dx = this->pbc(_particle(i).getposition(0, xnew) - _particle(j).getposition(0, 1), 0);
+            double dy = this->pbc(_particle(i).getposition(1, xnew) - _particle(j).getposition(1, 1), 1);
+            double dz = this->pbc(_particle(i).getposition(2, xnew) - _particle(j).getposition(2, 1), 2);
+            double dr_squared = dx * dx + dy * dy + dz * dz;
+            // dr =
             // dr = std::sqrt(dr);
-            if (dr < _r_cut)
-            {
-                energy_i += pow(dr, -12.) - pow(dr, -6.); // Potential energy calculation
-            }
+
+            energy_i += (dr_squared < _r_cut_squared) * (pow(dr_squared, -6.) - pow(dr_squared, -3.)); // Potential energy calculation (pow(dr, -12.) - pow(dr, -6.))
         }
     }
-    return 4.0 * energy_i;
+    energy_i *= 4.0;
+    return energy_i;
 }
 
 // @brief Print block information to stream
@@ -303,7 +293,7 @@ void System::general_print(std::ostream &stream, const double blk, const double 
 /// @brief Enforce periodic boundary conditions
 /// @param position
 /// @param i
-/// @return Reuturns position after Boudary Condition are applied
+/// @return Returns position after Boudary Condition are applied
 double System::pbc(double position, int i)
 {
     return position - _side(i) * std::rint(position / _side(i));
@@ -426,7 +416,7 @@ void System ::initialize()
             coutf << "SIDE= ";
             for (int i = 0; i < _ndim; i++)
             {
-                coutf << setw(12) << _side[i];
+                coutf << std::setw(12) << _side[i];
             }
             coutf << "\n";
         }
@@ -434,6 +424,7 @@ void System ::initialize()
         {
             input >> _r_cut;
             coutf << "R_CUT= " << _r_cut << "\n";
+            _r_cut_squared = _r_cut * _r_cut;
         }
         else if (property == "DELTA")
         {
@@ -521,7 +512,7 @@ void System::initialize_velocities()
         }
 
         sumv2 /= double(_npart);
-        scalef = sqrt(3.0 * _temp / sumv2); // velocity scale factor
+        scalef = std::sqrt(3.0 * _temp / sumv2); // velocity scale factor
         for (int i = 0; i < _npart; i++)
         {
             _particle(i).setvelocity(0, vx(i) * scalef);
@@ -532,12 +523,11 @@ void System::initialize_velocities()
 
     if (_sim_type == SimType::LENNARD_JONES_MD)
     {
-        double xold, yold, zold;
         for (int i = 0; i < _npart; i++)
         {
-            xold = this->pbc(_particle(i).getposition(0, true) - _particle(i).getvelocity(0) * _delta, 0);
-            yold = this->pbc(_particle(i).getposition(1, true) - _particle(i).getvelocity(1) * _delta, 1);
-            zold = this->pbc(_particle(i).getposition(2, true) - _particle(i).getvelocity(2) * _delta, 2);
+            double xold = this->pbc(_particle(i).getposition(0, true) - _particle(i).getvelocity(0) * _delta, 0);
+            double yold = this->pbc(_particle(i).getposition(1, true) - _particle(i).getvelocity(1) * _delta, 1);
+            double zold = this->pbc(_particle(i).getposition(2, true) - _particle(i).getvelocity(2) * _delta, 2);
             _particle(i).setpositold(0, xold);
             _particle(i).setpositold(1, yold);
             _particle(i).setpositold(2, zold);
@@ -885,9 +875,9 @@ void System::measure()
     // int bin;
     vec distance;
     distance.resize(_ndim);
-    double penergy_temp = 0.0, dr = 0.0; // temporary accumulator for potential energy
-    double kenergy_temp = 0.0;           // temporary accumulator for kinetic energy
-    double tenergy_temp = 0.0;           // temporary accumulator for total energy
+    double penergy_temp = 0.0; // temporary accumulator for potential energy
+    double kenergy_temp = 0.0; // temporary accumulator for kinetic energy
+    double tenergy_temp = 0.0; // temporary accumulator for total energy
     double magnetization = 0.0;
     double virial = 0.0;
 
@@ -895,27 +885,67 @@ void System::measure()
     if (_measure.penergy or _measure.pressure or _measure.gofr)
     {
         std::vector index(_npart - 1, 0); // I want N_part - 1 elements,
-        iota(index.begin(), index.end(), 0);
+        std::iota(index.begin(), index.end(), 0);
+
+        // #pragma omp parallel for ordered reduction(+ : virial)
+        //         for (int analyzed = 0; analyzed < _npart - 1; analyzed++)
+        //         {
+        //             for (int other = analyzed + 1; other < _npart; other++)
+        //             {
+
+        //                 distance(0) = this->pbc(_particle(analyzed).getposition(0, true) - _particle(other).getposition(0, true), 0);
+        //                 distance(1) = this->pbc(_particle(analyzed).getposition(1, true) - _particle(other).getposition(1, true), 1);
+        //                 distance(2) = this->pbc(_particle(analyzed).getposition(2, true) - _particle(other).getposition(2, true), 2);
+        //                 dr = std::sqrt(arma::dot(distance, distance));
+        //                 // GOFR ... TO BE FIXED IN EXERCISE 7
+        //                 if (_measure.gofr)
+        //                 {
+        //                     // Ragionando sulla condizione ho trovato un modo per trovare l'indice ed evitare quindi il ciclo for
+        //                     int index_to_insert_gofr = static_cast<int>(std::floor(dr / _bin_size)); // Voglio essere sicuro che faccia un troncamento verso il basso
+        //                     _measurement(_measure.idx_gofr + index_to_insert_gofr) += 2;
+        //                     /*
+        //                     for (int i = 0; i < _n_bins; i++)
+        //                     {
+        //                         if (dr > i* _bin_size && dr < (i+1) * _bin_size)
+        //                             {
+        //                             _measurement(_measure.idx_gofr + i) += 2;
+        //                         }
+        //                     }
+        //                     */
+        //                 }
+
+        //                 // POTENTIAL ENERGY
+        //                 penergy_temp += (dr < _r_cut and _measure.penergy) * (std::pow(dr, -12.) - std::pow(dr, -6.)); // POTENTIAL ENERGY
+
+        //                 // VIRIAL FOR PRESSURE ... TO BE FIXED IN EXERCISE 4
+
+        //                 virial += (dr < _r_cut and _measure.pressure) * (std::pow(dr, -12.) - 0.5 * std::pow(dr, -6.)); // VIRIAL, multiplication by 48 done after
+        //             }
+        //         }
 
         std::for_each(std::execution::par, index.cbegin(), index.cend(), [&](const int &part_analyzed)
-                      { 
-                    for (int other_part = part_analyzed + 1; other_part < _npart; other_part++)
-                    {
-                        distance(0) = this->pbc(_particle(part_analyzed).getposition(0, true) - _particle(other_part).getposition(0, true), 0);
-                        distance(1) = this->pbc(_particle(part_analyzed).getposition(1, true) - _particle(other_part).getposition(1, true), 1);
-                        distance(2) = this->pbc(_particle(part_analyzed).getposition(2, true) - _particle(other_part).getposition(2, true), 2);
-                        dr = sqrt(dot(distance, distance));
-                        // GOFR ... TO BE FIXED IN EXERCISE 7
-                        if (dr < _r_cut and _measure.penergy)
-                        {
-                            penergy_temp += 1.0 / pow(dr, 12.) - 1.0 / pow(dr, 6.); // POTENTIAL ENERGY
-                        }
-                        if (dr < _r_cut and _measure.pressure) // PRESSURE ... TO BE FIXED IN EXERCISE 4
-                        {
-                            virial += 1.0 / pow(dr, 12.) - 0.5 / pow(dr, 6.);
-                        }
+                      {
+        for (int other_part = part_analyzed + 1; other_part < _npart; other_part++)
+        {
+            distance(0) = this->pbc(_particle(part_analyzed).getposition(0, true) - _particle(other_part).getposition(0, true), 0);
+            distance(1) = this->pbc(_particle(part_analyzed).getposition(1, true) - _particle(other_part).getposition(1, true), 1);
+            distance(2) = this->pbc(_particle(part_analyzed).getposition(2, true) - _particle(other_part).getposition(2, true), 2);
+            double dr_squared = dot(distance, distance);
+            // GOFR ... TO BE FIXED IN EXERCISE 7
+            if (_measure.gofr)
+            {
+                // Ragionando sulla condizione ho trovato un modo per trovare l'indice ed evitare quindi il ciclo for
+                int index_to_insert_gofr = static_cast<int>(std::sqrt(dr_squared / (_bin_size * _bin_size))); // Voglio essere sicuro che faccia un troncamento verso il basso
+                _measurement(_measure.idx_gofr + index_to_insert_gofr) += 2;
+            }
 
-                    } });
+            penergy_temp += (dr_squared < _r_cut_squared and _measure.penergy) *( pow(dr_squared, -6.) - pow(dr_squared, -3.)); // POTENTIAL ENERGY ( 1.0 / pow(dr, 12.) - 1.0 / pow(dr, 6.))
+
+            // PRESSURE ... TO BE FIXED IN EXERCISE 4
+            virial +=  (dr_squared < _r_cut_squared and _measure.pressure) * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after, std::pow(dr, -12.) - 0.5 * std::pow(dr, -6.)
+
+
+        } });
     }
 
     // POTENTIAL ENERGY //////////////////////////////////////////////////////////
@@ -968,7 +998,11 @@ void System::measure()
     if (_measure.pressure and _measure.temp)
     {
         double temperature = _measurement(_measure.idx_temp);
-        _measurement(_measure.idx_pressure) = _rho * temperature + 16. * virial / (_volume); // 48 / 3 = 16...
+        _measurement(_measure.idx_pressure) = _ptail + _rho * temperature + 16. * virial / (_volume); // 48. / 3. = 16...
+#ifndef NDEBUG_TEMPERATURE_PRESSURE
+        std::cout << "current virial value" << std::setw(8) << virial << '\n';
+        std::cout << "Actuale Temperature : " << temperature << "\tPressure : " << _measurement(_measure.idx_pressure) << "\n";
+#endif // NDEBUG_TEMPERATURE_PRESSURE
     }
 
     // MAGNETIZATION /////////////////////////////////////////////////////////////
@@ -1069,18 +1103,23 @@ void System::averages(const int blk)
         sum_ave2 = _global_av2(_measure.idx_pressure);
         general_print(_measure.stream_pressure(), blk, average, sum_average, sum_ave2);
     }
+
     // GOFR //////////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 7
     if (_measure.gofr)
     {
-        // average = _average(_measure.idx_gofr);
-        // sum_average = _global_av(_measure.idx_gofr);
-        // sum_ave2 = _global_av2(_measure.idx_gofr);
-        // _measure.stream_pressure().precision(12);
-        // _measure.stream_pressure() << setw(16) << fixed << blk
-        //                            << setw(16) << fixed << average
-        //                            << setw(16) << fixed << sum_average / double(blk)
-        //                            << setw(16) << fixed << this->error(sum_average, sum_ave2, blk) << "\n";
+
+        if (blk == get_nbl()) // Last cycle in this moment we write gofr config.
+        {
+            _measure.stream_gofr().precision(12);
+            for (int bin = 0; bin < _n_bins; bin++)
+            {
+                average = _average(_measure.idx_gofr + bin);
+                sum_average = _global_av(_measure.idx_gofr + bin);
+                sum_ave2 = _global_av2(_measure.idx_gofr + bin);
+                general_print(_measure.stream_gofr(), blk, average, sum_average, sum_ave2);
+            }
+        }
     }
     // MAGNETIZATION /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
