@@ -1,19 +1,18 @@
-#ifndef __UTILITIES__
-#define __UTILITIES__
-
-#define NDEBUG
-
 #include "random.h"
 #include <algorithm>
 #include <execution>
 #include <cmath>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
+#include <iomanip>
 #include <numeric>
 #include <ostream>
 #include <string>
 #include <vector>
+
+#ifndef __UTILITIES__
+#define __UTILITIES__
+
 
 #ifdef USE_PARALLEL
 #define PARALLEL std::execution::par,
