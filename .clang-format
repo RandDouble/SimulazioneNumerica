@@ -10,8 +10,13 @@ ColumnLimit: 0
 AccessModifierOffset: -4
 NamespaceIndentation: All
 FixNamespaceComments: false
-#---
-#<!-- Language: Cpp -->
-DerivePointerAlignment: false
-PointerAlignement: Left
+
 ---
+Language: Cpp
+
+# Force pointers to the type
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+SortIncludes : true
