@@ -6,6 +6,7 @@ MAIN= main_9_1.cpp
 SRC_FILES = random.cpp utilities.cpp
 HEADER_FILES =
 LOCAL_SRC_FILE =
+LOCAL_HEADER_FILE = initializer.h mutation.h
 
 # Compiler and compiler flags
 # Default compiler is Clang++-17 with libc++ as standard library implementation
@@ -34,6 +35,7 @@ OBJ_DIR= ./obj
 
 SRC= $(addprefix $(SOURCE_DIR)/, $(SRC_FILES))
 HEAD= $(addprefix $(SOURCE_DIR)/, $(HEADER_FILES))
+HEAD += $(LOCAL_HEADER_FILE)
 
 OBJ= $(addprefix $(OBJ_DIR)/,$(addsuffix .o , $(basename $(SRC_FILES))))
 SRC += $(LOCAL_SRC_FILE)
@@ -42,6 +44,11 @@ OBJ += $(addprefix $(OBJ_DIR)/, $(addsuffix .o , $(basename $(LOCAL_SRC_FILE))))
 
 .PHONY: all
 all : $(PROGNAME)
+
+test: test_permutations.exe
+
+test_permutations.exe: test_permutations.cpp $(HEAD) $(OBJ)
+	$(CXX) -o $@ $< -g -Wall -Wextra -std=c++17 -stdlib=libc++ -fexperimental-library -I../../src $(LDFLAGS) $(OBJ)
 
 $(PROGNAME): $(MAIN) $(OBJ) $(HEAD)
 	$(CXX) -o $@ $(CXXFLAGS) $< $(OBJ) $(LDFLAGS)
