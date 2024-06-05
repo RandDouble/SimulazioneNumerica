@@ -3,7 +3,7 @@
 
 PROGNAME= test_random.exe
 MAIN= test_random.cpp
-SRC_FILES = random.cpp
+SRC_FILES = old_random.cpp
 HEADER_FILES =
 LOCAL_SRC_FILE = random_gen_sim.cpp utilities_local.cpp
 

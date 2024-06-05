@@ -13,21 +13,17 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 namespace Sim
 {
 
-    Random ::Random() {}
-
-    Random ::~Random() {}
-
-    void Random ::SaveSeed()
+    void Random ::SaveSeed(const std::string& filename) const
     {
         std::ofstream WriteSeed;
-        WriteSeed.open("../OUTPUT/seed.out");
+        WriteSeed.open(filename);
         if (WriteSeed.is_open())
         {
             WriteSeed << ((l_tot >> 36) & 4095) << " " << ((l_tot >> 24) & 4095) << " "
                       << ((l_tot >> 12) & 4095) << " " << (l_tot & 4095) << std::endl;
         }
         else
-            std::cerr << "PROBLEM: Unable to open random.out" << std::endl;
+            std::cerr << "PROBLEM: Unable to open " << filename << std::endl;
         WriteSeed.close();
         return;
     }
@@ -54,7 +50,7 @@ namespace Sim
         return r;
     }
 
-    void Random ::SetRandom(int *s, int p1, int p2)
+    void Random ::SetRandom(int* s, int p1, int p2)
     {
         l_tot = (static_cast<uint64_t>(s[0]) << (12 * 3)) + (static_cast<uint64_t>(s[1]) << (12 * 2)) + (static_cast<uint64_t>(s[2]) << 12) + static_cast<uint64_t>(s[3]);
 
@@ -81,7 +77,7 @@ namespace Sim
         return r;
     }
 
-    double Random::AcceptReject(const double a, const double b, const double max, std::function<double(double)> &PDF)
+    double Random::AcceptReject(const double a, const double b, const double max, std::function<double(double)>& PDF)
     {
         double x = 0, y = 0;
 
@@ -94,7 +90,7 @@ namespace Sim
         return x;
     }
 
-    double Random::ExternalInvCum(std::function<double(double)> &ICDF)
+    double Random::ExternalInvCum(std::function<double(double)>& ICDF)
     {
         return ICDF(Rannyu());
     }

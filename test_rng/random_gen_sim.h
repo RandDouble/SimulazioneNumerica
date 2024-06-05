@@ -35,9 +35,9 @@ namespace Sim
         ~Random() = default;
 
         // Method to set the seed for the RNG
-        void SetRandom(int *, int, int);
+        void SetRandom(int*, int, int);
         // Method to save the seed to a file
-        void SaveSeed();
+        void SaveSeed(const std::string& filename = "seed.out") const;
         // Method to generate a random number in the range [0,1)
         double Rannyu(void);
         // Method to generate a random number in the range [min,max)
@@ -49,9 +49,9 @@ namespace Sim
         // Method to generate a random number with a Lorentian distribution
         double Lorenztian(const double x_0, const double gamma);
         // Method Accept Reject for extreme case
-        double AcceptReject(const double a, const double b, const double max, std::function<double(double)> &PDF);
+        double AcceptReject(const double a, const double b, const double max, std::function<double(double)>& PDF);
         // Method with inverse cumulative
-        double ExternalInvCum(std::function<double(double)> &ICDF);
+        double ExternalInvCum(std::function<double(double)>& ICDF);
     };
 
 }

@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "random_gen_sim.h"
-#include "random.h"
+#include "old_random.h"
 
 #ifdef USE_PARALLEL
 #define PARALLEL std::execution::par,

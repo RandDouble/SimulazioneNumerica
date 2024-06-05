@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 
-#include "random.h"
+#include "old_random.h"
 #include "random_gen_sim.h"
 #include "utilities_local.h"
 
@@ -57,6 +57,8 @@ int main()
               << "Elapsed time extraction new :" << std::setw(15) << duration_second << '\n'
               << "Time Gain : " << std::setw(10) << gain << '\n';
     // print(equality_check);
+
+    sim_rng.SaveSeed();
 
     return 0;
 }
