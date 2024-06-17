@@ -7,6 +7,7 @@
 
 #include "initializer.h"
 #include "random.h"
+#include "swap_functions.h"
 
 #ifndef __MUTATIONS__
 #define __MUTATIONS__
@@ -23,8 +24,23 @@ public:
         std::iota(m_DNA.begin(), m_DNA.end(), 0);
     }
 
+    Individual(Individual<SIZE>& other) { std::copy(other.m_DNA.begin(), other.m_DNA.end(), m_DNA.begin()); }
+    Individual(Individual<SIZE>&& other) : m_DNA(std::move(other.m_DNA)) { ; }
+
     template <typename... T>
     Individual(T&&... l) : m_DNA{{static_cast<uint8_t>(std::forward<T>(l))...}} { ; }
+
+    Individual<SIZE>& operator=(Individual<SIZE>& other)
+    {
+        std::copy(other.m_DNA.begin(), other.m_DNA.end(), m_DNA.begin());
+        return *this;
+    }
+
+    Individual<SIZE>& operator=(Individual<SIZE>&& other)
+    {
+        m_DNA = std::move(other.m_DNA);
+        return *this;
+    }
 
     constexpr decltype(m_DNA.begin()) begin() { return m_DNA.begin(); }
     constexpr decltype(m_DNA.end()) end() { return m_DNA.end(); }
@@ -52,55 +68,48 @@ public:
 
     void shift_block(Random& rng)
     {
-        std::size_t block_size = rng.Ranint(1, SIZE - 1);
-        /// @todo : Modifica valori
-        std::size_t shift_size = rng.Ranint(1, 2);
+        std::size_t start_idx = rng.Ranint(1, SIZE);
+        std::size_t middle_idx = start_idx + rng.Ranint(1, SIZE - 1);
+        std::size_t end_idx = middle_idx + rng.Ranint(1, SIZE - (middle_idx - start_idx));
 
-        assert((block_size < (SIZE - 1)) && "Block Size to shift greater than Array Size\n");
-        assert((shift_size > 0) && "We want to shift only on the left.\n");
-        assert((shift_size < SIZE) && "Shift size should be less than array size");
-
-        std::size_t starting_idx = rng.Ranint(1, SIZE - block_size - shift_size);
+        assert((end_idx - middle_idx > 0) && "We want to shift only on the left.\n");
+        assert((end_idx - middle_idx < SIZE) && "Shift size should be less than array size");
 
         // Moving to the end block to move
-        const auto begin = m_DNA.begin() + starting_idx;
-        const auto end = begin + block_size + shift_size;
-        const auto middle = begin + block_size;
+        // const auto begin = m_DNA.begin() + starting_idx;
+        // const auto middle = begin + block_size;
+        // const auto end = begin + block_size + shift_size;
 
-        std::rotate(begin, middle, end);
+        // std::rotate(begin, middle, end);
+
+        PBC_swap::rotate<SIZE>(m_DNA.begin(), start_idx, middle_idx, end_idx, 1);
     }
 
     void permutate_contiguos(Random& rng)
     {
         std::size_t m_contiguos = rng.Ranint(1, SIZE / 2);
-        std::size_t first_pos_idx = rng.Ranint(1, SIZE / 2 - m_contiguos);         // Selected in the first half - m_contiguos
-        std::size_t second_pos_idx = rng.Ranint(SIZE / 2 + 1, SIZE - m_contiguos); // Select in second half - m_contiguos
-        auto first_position = m_DNA.begin() + first_pos_idx;
-        auto second_position = m_DNA.begin() + second_pos_idx;
+        std::size_t first_pos_idx = rng.Ranint(1, SIZE);                                          // Selected in the first half - m_contiguos
+        std::size_t second_pos_idx = first_pos_idx + rng.Ranint(m_contiguos, SIZE - m_contiguos); // Select in second half - m_contiguos
+        // auto first_position = m_DNA.begin() + first_pos_idx;
+        // auto second_position = m_DNA.begin() + second_pos_idx;
 
-        std::swap_ranges(first_position, first_position + m_contiguos, second_position);
+        // std::swap_ranges(first_position, first_position + m_contiguos, second_position);
+        PBC_swap::swap_ranges<SIZE>(m_DNA.begin(), first_pos_idx, second_pos_idx, m_contiguos, 1);
     }
 
     void inversion(Random& rng)
     {
         auto inversion_lenght = rng.Ranint(2, SIZE);
-        auto idx_start_inversion{0ull};
-        if (inversion_lenght + 1 == SIZE)
-        {
-            idx_start_inversion = 1;
-        }
-        else
-        {
-            idx_start_inversion = rng.Ranint(1, SIZE - inversion_lenght);
-        }
+        auto idx_start_inversion = rng.Ranint(1, SIZE);
 
         assert((inversion_lenght < SIZE) && "You choose an invertion lenght higher than array lenght");
         assert((inversion_lenght != 0ull) && "What sense has to have an invertion lenght equals to zero");
-        assert(((idx_start_inversion + inversion_lenght) <= SIZE) && "You cannot go out of array bounds");
+        // assert(((idx_start_inversion + inversion_lenght) <= SIZE) && "You cannot go out of array bounds");
 
-        auto start = m_DNA.begin() + idx_start_inversion;
-        auto end = start + inversion_lenght; // Last element is not included in rotation
-        std::reverse(start, end);
+        // auto start = m_DNA.begin() + idx_start_inversion;
+        // auto end = start + inversion_lenght; // Last element is not included in rotation
+        // std::reverse(start, end);
+        PBC_swap::reverse<SIZE>(m_DNA.begin(), idx_start_inversion, idx_start_inversion + inversion_lenght, 1);
     }
 
     void crossover(Individual& mother, Individual& daughter, Individual& son, Random& rng)
@@ -154,7 +163,7 @@ public:
     double cost(const std::array<arma::vec2, SIZE>& positions) const
     {
         double acc = 0.;
-        for (int i = 1; i < SIZE; i++)
+        for (size_t i = 1; i < SIZE; i++)
         {
             auto difference = positions[m_DNA[i]] - positions[m_DNA[i - 1]];
             acc += arma::dot(difference, difference);
