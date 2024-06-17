@@ -13,7 +13,7 @@ INCFLAGS= -I../src
 SOURCE_DIR= ../src
 OBJ_DIR= ./obj
 
-CXXFLAGS= $(INCFLAGS) -g -Wall -Wextra -O3 -std=c++20 -DUSE_PARALLEL
+CXXFLAGS= $(INCFLAGS) -Wall -Wextra -O3 -flto -std=c++20 -march=native -DUSE_PARALLEL
 # O2 because it can show more warning due to flow variable analisys
 # c++17 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 
@@ -29,7 +29,7 @@ else ifeq ($(COMPILER), GNU)
 	CXX = g++
 	LDFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP, flags to set library and use parallel algorithms
-	CXX = clang++-17
+	CXX = clang++-18
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 endif
 

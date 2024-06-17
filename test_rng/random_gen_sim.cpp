@@ -44,9 +44,13 @@ namespace Sim
     double Random ::Rannyu(void)
     {
         constexpr double twom48 = 1. / (1ull << 48);
+
         l_tot = l_tot * m_tot + n_tot;
+
         l_tot &= ((1ull << 48) - 1);
+
         double r = twom48 * l_tot;
+
         return r;
     }
 

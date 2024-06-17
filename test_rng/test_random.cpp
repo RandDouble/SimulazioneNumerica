@@ -17,6 +17,7 @@ int main()
     initializer(sim_rng);
 
     constexpr std::size_t size = 100000;
+
     std::vector result_unmodified(size, 0.);
     std::vector result_sim(size, 0.);
     std::vector equality_check(size, 0);
