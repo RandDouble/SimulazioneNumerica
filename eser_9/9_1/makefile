@@ -6,7 +6,7 @@ MAIN= main_9_1.cpp
 SRC_FILES = random.cpp utilities.cpp
 HEADER_FILES =
 LOCAL_SRC_FILE =
-LOCAL_HEADER_FILE = initializer.h mutation.h
+LOCAL_HEADER_FILE = initializer.h mutation.h population.h swap_functions.h
 
 # Compiler and compiler flags
 # Default compiler is Clang++-17 with libc++ as standard library implementation
