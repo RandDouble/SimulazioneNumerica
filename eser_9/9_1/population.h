@@ -26,10 +26,13 @@ private:
 
     std::size_t selection_operator(Random& rng)
     {
-        std::function<double(double)> F = [&](double in) -> double
-        { return ICDF(in, m_selection_coeff); };
-        return static_cast<size_t>(m_old_gen.size() *
-               rng.ExternalInvCum(F));
+        // std::function<double(double)> F = [&](double in) -> double
+        // { return ICDF(in, m_selection_coeff); };
+
+        //     return static_cast<size_t>(m_old_gen.size() *
+        //            rng.ExternalInvCum(F));
+        // }
+        return rng.Ranint(0, m_pop.size() / 2);
     }
 
 public:
@@ -60,8 +63,8 @@ public:
 
     void sort_population(std::array<arma::vec2, SIZE>& positions)
     {
-        std::sort(m_pop.begin(), m_pop.end(), [&positions](const Individual<SIZE>& a, const Individual<SIZE>& b)
-                  { return a.cost(positions) < b.cost(positions); });
+        std::stable_sort(m_pop.begin(), m_pop.end(), [&positions](const Individual<SIZE>& a, const Individual<SIZE>& b)
+                         { return (a.cost(positions) < b.cost(positions)); });
     }
 
     void new_gen(Random& rng)
@@ -72,10 +75,14 @@ public:
 
             size_t idx_mother = selection_operator(rng);
             size_t idx_father = selection_operator(rng);
+            if (idx_mother == idx_father)
+            {
+                idx_father++;
+            }
             Individual<SIZE> mother = m_old_gen[idx_mother];
             Individual<SIZE> father = m_old_gen[idx_father];
-            auto& son = m_pop[i];
-            auto& daughter = m_pop[i + 1];
+            Individual<SIZE>* son = &(m_pop[i]);
+            Individual<SIZE>* daughter = &(m_pop[i + 1]);
 
             // Pair Permutation
             if (rng.Rannyu() < m_swap_prob)
@@ -104,12 +111,12 @@ public:
             // Crossover
             if (rng.Rannyu() < m_crossover_prob)
             {
-                mother.crossover(father, son, daughter, rng);
+                mother.crossover(father, *son, *daughter, rng);
             }
             else
             {
-                daughter = mother;
-                son = father;
+                std::copy(mother.begin(), mother.end(), daughter->begin());
+                std::copy(father.begin(), father.end(), son->begin());
             }
         }
     }

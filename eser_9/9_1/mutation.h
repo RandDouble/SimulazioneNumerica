@@ -129,13 +129,13 @@ public:
         {
             for (std::size_t k = cut_position; k < SIZE; k++)
             {
-                if (m_DNA[k] == mother[j])
+                if (m_DNA[k] == mother[j]) // Father DNA in k position is equal to mother's DNA at j position
                 {
-                    son[counter_son++] = mother[j];
+                    son[counter_son++] = mother[j]; // Mother's DNA is copied in son.
                 }
-                if (mother[k] == m_DNA[j])
+                if (mother[k] == m_DNA[j]) // Father DNA in j position is equal to mother's DNA at k position
                 {
-                    daughter[counter_daughter++] = m_DNA[j];
+                    daughter[counter_daughter++] = m_DNA[j]; // Father DNA is copied in daughter's DNA
                 }
             }
         }
@@ -163,11 +163,13 @@ public:
     double cost(const std::array<arma::vec2, SIZE>& positions) const
     {
         double acc = 0.;
-        for (size_t i = 1; i < SIZE; i++)
+        for (size_t i = 0; i < SIZE; i++)
         {
-            auto difference = positions[m_DNA[i]] - positions[m_DNA[i - 1]];
-            acc += arma::dot(difference, difference);
+            arma::vec2 difference = positions[m_DNA[PBC_swap::PBC<SIZE>(i + 1)]] - positions[m_DNA[PBC_swap::PBC<SIZE>(i)]];
+            // std::cout << '(' << PBC_swap::PBC<SIZE>(i)<< ',' << PBC_swap::PBC<SIZE>(i+1) << ")  ";
+            acc += arma::norm(difference);
         }
+        // std::cout << '\n';
         return acc;
     }
 };
