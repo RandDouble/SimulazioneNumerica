@@ -13,8 +13,8 @@ class Population
 private:
     std::vector<Individual<SIZE>> m_pop;
     std::vector<Individual<SIZE>> m_old_gen;
-    double m_swap_prob{0.2}, m_shift_prob{0.1},
-        m_permutate_prob{0.1}, m_invers_prob{0.1}, m_crossover_prob{0.6};
+    double m_swap_prob{0.07}, m_shift_prob{0.06},
+        m_permutate_prob{0.06}, m_invers_prob{0.07}, m_crossover_prob{0.6};
     double m_selection_coeff{-.5};
 
 private:
@@ -31,14 +31,13 @@ private:
 
         return static_cast<size_t>(m_old_gen.size() *
                                    rng.ExternalInvCum(F));
-
-        // return rng.Ranint(0, m_pop.size() / 2);
     }
+    // return rng.Ranint(0, m_pop.size() / 2);
 
 public:
     Population(const std::size_t size) : m_pop(size), m_old_gen(size) { ; }
     Population(std::vector<Individual<SIZE>>& vec) : m_pop{vec}, m_old_gen{vec} { ; }
-    Population(std::vector<Individual<SIZE>>&& vec) : m_pop{vec} { m_old_gen = std::copy(m_pop); }
+    Population(std::vector<Individual<SIZE>>&& vec) : m_pop{vec} { std::copy(m_pop.begin(), m_pop.end(), m_old_gen.begin()); }
 
     void crossover_prob(const double& prob) { m_crossover_prob = prob; }
     void swap_prob(const double& prob) { m_swap_prob = prob; }
@@ -67,9 +66,22 @@ public:
                          { return (a.cost(positions) < b.cost(positions)); });
     }
 
+    void sort_population(std::vector<arma::vec2>& positions)
+    {
+        std::stable_sort(m_pop.begin(), m_pop.end(), [&positions](const Individual<SIZE>& a, const Individual<SIZE>& b)
+                         { return (a.cost(positions) < b.cost(positions)); });
+    }
+
+    void sort_population(arma::mat& distances)
+    {
+        std::stable_sort(m_pop.begin(), m_pop.end(), [&distances](const Individual<SIZE>& a, const Individual<SIZE>& b)
+                         { return (a.cost(distances) < b.cost(distances)); });
+    }
+
     void new_gen(Random& rng)
     {
-        m_old_gen = m_pop;
+        std::copy(m_pop.begin(), m_pop.end(), m_old_gen.begin());
+
         for (size_t i = 0; i < m_pop.size(); i += 2)
         {
 
@@ -79,10 +91,17 @@ public:
             {
                 idx_father = selection_operator(rng);
             }
+
+            assert(idx_mother < m_pop.size() && "Choosing idx for father out of bound");
+            assert(idx_father < m_pop.size() && "Choosing idx for father out of bound");
+
             Individual<SIZE> mother = m_old_gen[idx_mother];
             Individual<SIZE> father = m_old_gen[idx_father];
             Individual<SIZE>* son = &(m_pop[i]);
             Individual<SIZE>* daughter = &(m_pop[i + 1]);
+
+            assert(mother.check_health() && "Mother has cancer");
+            assert(father.check_health() && "Father has cancer");
 
             // Pair Permutation
             if (rng.Rannyu() < m_swap_prob)
@@ -90,11 +109,17 @@ public:
             if (rng.Rannyu() < m_swap_prob)
                 father.pair_permutation(rng);
 
+            assert(mother.check_health() && "Mother has cancer after mutations, before shift block");
+            assert(father.check_health() && "Father has cancer after mutations, before shift block");
+
             // Shift Block
             if (rng.Rannyu() < m_shift_prob)
                 mother.shift_block(rng);
             if (rng.Rannyu() < m_shift_prob)
                 father.shift_block(rng);
+
+            assert(mother.check_health() && "Mother has cancer after mutations, before permutation");
+            assert(father.check_health() && "Father has cancer after mutations, before permutation");
 
             // Permutation
             if (rng.Rannyu() < m_permutate_prob)
@@ -102,21 +127,31 @@ public:
             if (rng.Rannyu() < m_permutate_prob)
                 father.permutate_contiguos(rng);
 
+            assert(mother.check_health() && "Mother has cancer after mutations, before inversion");
+            assert(father.check_health() && "Father has cancer after mutations, before inversion");
+
             // Inversion
             if (rng.Rannyu() < m_invers_prob)
                 mother.inversion(rng);
             if (rng.Rannyu() < m_invers_prob)
                 father.inversion(rng);
 
+            assert(mother.check_health() && "Mother has cancer after mutations");
+            assert(father.check_health() && "Father has cancer after mutations");
+
             // Crossover
             if (rng.Rannyu() < m_crossover_prob)
             {
                 mother.crossover(father, *son, *daughter, rng);
+                assert(daughter->check_health() && "Daughter is born ill, after crossover");
+                assert(son->check_health() && "Son is born ill, after crossover");
             }
             else
             {
                 std::copy(mother.begin(), mother.end(), daughter->begin());
                 std::copy(father.begin(), father.end(), son->begin());
+                assert(daughter->check_health() && "Daughter is born ill, after copy");
+                assert(son->check_health() && "Son is born ill, after copy");
             }
         }
     }
