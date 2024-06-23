@@ -5,12 +5,17 @@ DEPS:= eser_1/1_1/main_1_1.exe\
 	eser_2/2_2/main_2_2.exe\
 	eser_3/3_1/main_3_1.exe\
 	NSL_SIMULATOR/SOURCE/simulator.exe\
-	eser_5/5_1/main_5_1.exe
+	eser_5/5_1/main_5_1.exe\
+	eser_8/8_1/main_8_1.exe\
+	eser_8/8_2/main_8_2.exe\
+	eser_9/9_1/main_9_1.exe\
+	eser_10/10_1/main_10_1.exe\
+
 
 # Set COMPILER to choose a compiler platform,
 # Possible values are:
 # - CLANG_LIBCPP to compiler with clang-17 and libc++
-# - CLANG_GNUCPP to compiler with clang-17 and listdbc++
+# - CLANG_GNUCPP to compiler with clang-17 and listdc++
 # - GNU to compiler with g++
 
 COMPILER=GNU
