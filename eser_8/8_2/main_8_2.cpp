@@ -18,8 +18,8 @@ constexpr std::size_t same_temperature_step = 10;
 constexpr double d_temperature = (starting_temperature - ending_temperature) / n_temperature_step; // Increase in temperature
 constexpr unsigned int n_blocks = 1000;                                                            // Number of blocks for data blocking
 constexpr unsigned int n_step = 1000;                                                              // Number of step for each block
-constexpr double delta_mu = 0.1;
-constexpr double delta_sigma = 0.1;
+// constexpr double delta_mu = 0.1;
+// constexpr double delta_sigma = 0.1;
 
 int main()
 {

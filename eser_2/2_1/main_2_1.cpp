@@ -23,7 +23,7 @@ int main()
 
     // File output
     std::ofstream f_out("uniform.csv");
-    for (auto &&val : v_uniform)
+    for (auto&& val : v_uniform)
     {
         f_out << val << "\n";
     }
@@ -38,7 +38,7 @@ int main()
 
     // File output
     f_out.open("precise.csv");
-    for (auto &&val : v_precise)
+    for (auto&& val : v_precise)
     {
         f_out << val << "\n";
     }

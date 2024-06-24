@@ -190,7 +190,17 @@ int main(int argc, char* argv[])
     Population<N_PROV> best_pop((rank == MASTER) ? size : 0);
     std::vector<uint8_t> recv_best_vec((rank == MASTER) ? size * N_PROV : 0, 0);
 
-    std::cout << "Rank :" << std::setw(3) << rank << (rank == MASTER) ? " : Asking for other best\n" : "Sending my best\n";
+    std::string msg;
+    if (rank == MASTER)
+    {
+        msg = " : Asking for other best\n";
+    }
+    else
+    {
+        msg = " : Sending my best\n";
+    }
+
+    std::cout << "Rank :" << std::setw(3) << rank << msg;
 
     MPI_Gather(population.begin()->data(), N_PROV, MPI_UINT8_T, recv_best_vec.data(), population.begin()->size(), MPI_UINT8_T, MASTER, MPI_COMM_WORLD);
 
