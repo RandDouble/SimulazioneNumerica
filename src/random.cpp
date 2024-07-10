@@ -91,6 +91,19 @@ double Random::AcceptReject(const double a, const double b, const double max, st
     return x;
 }
 
+double Random::AcceptReject(const double a, const double b, const double max, const std::function<double(double)>& PDF)
+{
+    double x = 0, y = 0;
+
+    do
+    {
+        x = Rannyu(a, b);
+        y = Rannyu(0, max);
+    } while (PDF(x) < y);
+
+    return x;
+}
+
 double Random::ExternalInvCum(std::function<double(double)>& ICDF)
 {
     return ICDF(Rannyu());

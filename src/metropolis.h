@@ -13,6 +13,7 @@ class Metropolis
 private:
     std::size_t m_n_step{0};
     Random m_rng;
+    double m_acceptance{0.};
 
 public:
     Metropolis() = default;
@@ -21,6 +22,8 @@ public:
 
     constexpr std::size_t get_n_step() { return m_n_step; }
     void set_n_step(std::size_t n_step) { m_n_step = n_step; }
+
+    double get_acceptance() const { return m_acceptance; }
 
     template <typename T>
     T generate(T start_pos, const std::size_t n_step, const std::function<double(T)>& PDF, const std::function<T()>& sampler);
@@ -36,6 +39,7 @@ template <typename T>
 inline T Metropolis::generate(T start_pos, const std::size_t n_step, const std::function<double(T)>& PDF, const std::function<T()>& sampler)
 {
     T x = start_pos;
+    m_acceptance = 0.;
     for (std::size_t i = 0; i < n_step; i++)
     {
         T x_new = x + sampler();
@@ -46,6 +50,7 @@ inline T Metropolis::generate(T start_pos, const std::size_t n_step, const std::
 #endif
 
         double test = m_rng.Rannyu();
+        m_acceptance += (test <= a) / static_cast<double>(m_n_step);
         x = (test <= a) ? x_new : x;
     }
     return x;
@@ -60,7 +65,7 @@ inline T Metropolis::generate(T start_pos, const std::function<double(T)>& PDF, 
 template <typename T>
 inline double Metropolis::accept(const std::function<double(T)>& PDF, T next, T actual)
 {
-    return std::min(1., PDF(next) / PDF(actual));
+    return  PDF(next) / PDF(actual);
 }
 
 #endif // __METROPOLIS__

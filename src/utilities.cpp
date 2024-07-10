@@ -59,7 +59,7 @@ double calc_mean(std::vector<double> &v_el)
 
 double calc_mean(std::vector<double>::iterator begin, std::vector<double>::iterator end)
 {
-    assert((end < begin) && "Error in range given to calc mean\n");
+    assert((end >= begin) && "Error in range given to calc mean\n");
     if (begin == end)
     {
         return *begin;
@@ -82,7 +82,7 @@ double calc_std(std::vector<double> &v_el)
 
 double calc_std(std::vector<double>::iterator begin, std::vector<double>::iterator end)
 {
-    assert((end < begin) && "Error in range given to calc std\n");
+    assert((end >= begin) && "Error in range given to calc std\n");
 
     if (begin == end)
     {
