@@ -6,9 +6,9 @@
 
 #include "wave_function.h"
 
-void update_wave_param(WaveFunction &wave, Random &rng);
+void update_wave_param(WaveFunction& wave, Random& rng);
 double update_temp(const double old_beta);
-double calc_expexted_energy(Metropolis &metro, Random &rng, const double delta, const WaveFunction &wave, const double x_start);
+double calc_expexted_energy(Metropolis& metro, Random& rng, const double delta, const WaveFunction& wave, const double x_start);
 
 constexpr double starting_temperature = 10000;
 constexpr double ending_temperature = 1e-5;
@@ -66,7 +66,7 @@ int main()
     return 0;
 }
 
-void update_wave_param(WaveFunction &wave, Random &rng)
+void update_wave_param(WaveFunction& wave, Random& rng)
 {
     wave.mu(wave.mu() + rng.Rannyu());
     wave.sigma(wave.sigma() + rng.Rannyu());
@@ -84,7 +84,7 @@ double update_temp(const double old_beta)
     return result;
 }
 
-double calc_expexted_energy(Metropolis &metro, Random &rng, const double delta, const WaveFunction &wave, const double x_start)
+double calc_expexted_energy(Metropolis& metro, Random& rng, const double delta, const WaveFunction& wave, const double x_start)
 {
     std::vector block_result(n_blocks, 0.);
     const double weight = 1. / n_step;
@@ -97,7 +97,7 @@ double calc_expexted_energy(Metropolis &metro, Random &rng, const double delta, 
 
     double x_i = x_start;
 
-    for (auto &&block : block_result)
+    for (auto&& block : block_result)
     {
         for (unsigned int i = 0; i < n_step; i++)
         {
