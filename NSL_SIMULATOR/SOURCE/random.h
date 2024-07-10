@@ -8,34 +8,59 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 *****************************************************************
 *****************************************************************/
 
-#ifndef __Random__
-#define __Random__
+#include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <fstream>
+#include <functional>
+#include <iostream>
 
+#ifndef __Random_Sim__
+#define __Random_Sim__
+
+// namespace Sim
+// {
 class Random
 {
 
 private:
-    const int m1{502};
-    const int m2{1521};
-    const int m3{4071};
-    const int m4{2107};
-    int l1, l2, l3, l4, n1, n2, n3, n4;
+    const uint64_t m_tot{34522712143931ull};
+    uint64_t l_tot, n_tot;
 
 protected:
 public:
     // constructors
-    Random();
+    Random() = default;
     // destructor
-    ~Random();
-    // methods
-    void SetRandom(int *, int, int);
-    void SaveSeed();
+    ~Random() = default;
+
+    // Method to set the seed for the RNG
+    void SetRandom(int*, int, int);
+    // Method to save the seed to a file
+    void SaveSeed(const std::string& filename = "seed.out") const;
+    // Method to generate a random number in the range [0,1)
     double Rannyu(void);
-    double Rannyu(double min, double max);
-    double Gauss(double mean, double sigma);
+    // Method to generate a random number in the range [min,max)
+    double Rannyu(const double min, const double max);
+    // Method to generate random integers in range [0 , 2**48)
+    uint64_t Ranint();
+    // Method to generate random integers in range [min, max)]
+    uint64_t Ranint(const uint64_t min, const uint64_t max);
+    // Method to generate a random number with a Gaussian distribution
+    double Gauss(const double mean, const double sigma);
+    // Method to generate a random number with an Exponential distribution
+    double Exponential(const double lambda);
+    // Method to generate a random number with a Lorentian distribution
+    double Lorenztian(const double x_0, const double gamma);
+    // Method Accept Reject for extreme case
+    double AcceptReject(const double a, const double b, const double max, std::function<double(double)>& PDF);
+    double AcceptReject(const double a, const double b, const double max, const std::function<double(double)>& PDF);
+    // Method with inverse cumulative
+    double ExternalInvCum(std::function<double(double)>& ICDF);
 };
 
-#endif // __Random__
+// }
+#endif // __Random_Sim__
 
 /****************************************************************
 *****************************************************************
