@@ -14,12 +14,37 @@ std::string wave_name(WAVE_FUNCTION wave_enum)
         std::cerr << "Could not understand which function was referenced, only values that can be accepted are:\n"
                   << "\t- GROUND_STATE\n"
                   << "\t- FIRST_EXCITED\n"
+                  << "\t- SECOND_EXCITED\n"
                   << "Aborting\n";
         exit(-1);
     }
 }
 
-void file_parser(std::ifstream &in, Options &opt)
+std::string generator_name(NEW_POS_GENERATOR wave_enum)
+{
+    switch (wave_enum)
+    {
+    case NEW_POS_GENERATOR::UNIFORM:
+        return std::string("UNIFORM");
+    case NEW_POS_GENERATOR::NORMAL:
+        return std::string("NORMAL");
+    default:
+        std::cerr << "Could not understand which function was referenced, only values that can be accepted are:\n"
+                  << "\t- UNIFORM\n"
+                  << "\t- NORMAL\n"
+                  << "Aborting\n";
+        exit(-1);
+    }
+}
+
+bool compare_value(std::ifstream& in)
+{
+    int appo = 0;
+    in >> appo;
+    return (appo > 0);
+}
+
+void file_parser(std::ifstream& in, Options& opt)
 {
 
     std::string appo;
@@ -29,9 +54,13 @@ void file_parser(std::ifstream &in, Options &opt)
         {
             in >> opt.n_block;
         }
-        else if (appo == "STEPS")
+        else if (appo == "BLOCK_STEPS")
         {
-            in >> opt.n_step;
+            in >> opt.n_block_step;
+        }
+        else if (appo == "PARTICLE_STEPS")
+        {
+            in >> opt.n_particle_step;
         }
         else if (appo == "DELTA")
         {
@@ -49,17 +78,29 @@ void file_parser(std::ifstream &in, Options &opt)
         {
             in >> opt.start_pos.x >> opt.start_pos.y >> opt.start_pos.z;
         }
+        else if (appo == "THERMALIZATION_STEPS")
+        {
+            in >> opt.n_thermalization_step;
+        }
         else if (appo == "OUTPUT_FILE")
         {
-            int value = 0;
-            in >> value;
-            opt.output_file = (value > 0) ? true : false;
+            opt.output_file = compare_value(in);
         }
         else if (appo == "OUTPUT_VIDEO")
         {
-            int value = 0;
-            in >> value;
-            opt.output_video = (value > 0) ? true : false;
+            opt.output_video = compare_value(in);
+        }
+        else if (appo == "RESET")
+        {
+            opt.reset = compare_value(in);
+        }
+        else if (appo == "INFO_FILE")
+        {
+            opt.output_info = compare_value(in);
+        }
+        else if (appo == "MEAN_RADIUS_FILE")
+        {
+            opt.output_mean_radius = compare_value(in);
         }
         else if (appo == "WAVE_FUNCTION")
         {
@@ -75,6 +116,21 @@ void file_parser(std::ifstream &in, Options &opt)
                     opt.func = wave_test;
             }
             std::cout << "Wave Function analyzed is : " << wave_name(opt.func) << "\n";
+        }
+        else if (appo == "GENERATOR")
+        {
+            std::string value;
+            in >> value;
+            std::transform(value.begin(), value.end(), value.begin(), toupper);
+
+            for (NEW_POS_GENERATOR gen_test = NEW_POS_GENERATOR::UNIFORM;
+                 gen_test != NEW_POS_GENERATOR::LAST;
+                 gen_test = static_cast<NEW_POS_GENERATOR>(static_cast<int>(gen_test) + 1))
+            {
+                if (value == generator_name(gen_test))
+                    opt.new_pos_generator = gen_test;
+            }
+            std::cout << "Generator used is : " << generator_name(opt.new_pos_generator) << "\n";
         }
     }
 }
