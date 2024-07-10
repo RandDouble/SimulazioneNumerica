@@ -23,7 +23,7 @@ using namespace arma;
 /// @param in Input stream
 /// @param type Output varible
 /// @return Input stream
-std::istream &operator>>(std::istream &in, SimType &type)
+std::istream& operator>>(std::istream& in, SimType& type)
 {
     int el; // Temporary variable to store symulation type, that in file is a number
     if (!(in >> el))
@@ -139,7 +139,7 @@ double System::Force(const int i, const int dim)
 
                 std::cout << "Printing force history\n";
 
-                for (auto &&past : force_history)
+                for (auto&& past : force_history)
                 {
                     std::cout << past << '\n';
                 }
@@ -252,7 +252,7 @@ double System ::Boltzmann(const int i, const bool xnew)
     double energy_i = 0.0;
     // double dx, dy, dz, dr;
 // Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa sistemare un filino come codice.
-#pragma omp parallel for
+#pragma omp parallel for reduction(+ : energy_i)
     for (int j = 0; j < _npart; j++)
     {
         if (j != i)
@@ -272,7 +272,7 @@ double System ::Boltzmann(const int i, const bool xnew)
 }
 
 // @brief Print block information to stream
-void System::general_print(std::ostream &stream, const int blk, const double ave, const double sum_ave, const double sum_ave2)
+void System::general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double sum_ave2)
 {
     stream.precision(8);
     stream << std::setw(8) << blk
@@ -281,7 +281,7 @@ void System::general_print(std::ostream &stream, const int blk, const double ave
            << std::setw(14) << this->error(sum_ave, sum_ave2, blk) << "\n";
 }
 
-void System::general_print(std::ostream &stream, const double blk, const double ave, const double sum_ave, const double sum_ave2)
+void System::general_print(std::ostream& stream, const double blk, const double ave, const double sum_ave, const double sum_ave2)
 {
     stream.precision(8);
     stream << std::setw(8) << blk
@@ -873,8 +873,6 @@ void System::measure()
     _measurement.zeros();
     // POTENTIAL ENERGY, VIRIAL, GOFR ///////////////////////////////////////////
     // int bin;
-    vec distance;
-    distance.resize(_ndim);
     double penergy_temp = 0.0; // temporary accumulator for potential energy
     double kenergy_temp = 0.0; // temporary accumulator for kinetic energy
     double tenergy_temp = 0.0; // temporary accumulator for total energy
@@ -884,68 +882,74 @@ void System::measure()
     // VIRIAL  ////////////////////////////////////////////////////////////////////
     if (_measure.penergy or _measure.pressure or _measure.gofr)
     {
-        std::vector index(_npart - 1, 0); // I want N_part - 1 elements,
-        std::iota(index.begin(), index.end(), 0);
+        // std::vector index(_npart - 1, 0); // I want N_part - 1 elements,
+        // std::iota(index.begin(), index.end(), 0);
 
-        // #pragma omp parallel for ordered reduction(+ : virial)
-        //         for (int analyzed = 0; analyzed < _npart - 1; analyzed++)
-        //         {
-        //             for (int other = analyzed + 1; other < _npart; other++)
-        //             {
+        // std::cerr << "came here\n";
 
-        //                 distance(0) = this->pbc(_particle(analyzed).getposition(0, true) - _particle(other).getposition(0, true), 0);
-        //                 distance(1) = this->pbc(_particle(analyzed).getposition(1, true) - _particle(other).getposition(1, true), 1);
-        //                 distance(2) = this->pbc(_particle(analyzed).getposition(2, true) - _particle(other).getposition(2, true), 2);
-        //                 dr = std::sqrt(arma::dot(distance, distance));
-        //                 // GOFR ... TO BE FIXED IN EXERCISE 7
-        //                 if (_measure.gofr)
-        //                 {
-        //                     // Ragionando sulla condizione ho trovato un modo per trovare l'indice ed evitare quindi il ciclo for
-        //                     int index_to_insert_gofr = static_cast<int>(std::floor(dr / _bin_size)); // Voglio essere sicuro che faccia un troncamento verso il basso
-        //                     _measurement(_measure.idx_gofr + index_to_insert_gofr) += 2;
-        //                     /*
-        //                     for (int i = 0; i < _n_bins; i++)
-        //                     {
-        //                         if (dr > i* _bin_size && dr < (i+1) * _bin_size)
-        //                             {
-        //                             _measurement(_measure.idx_gofr + i) += 2;
-        //                         }
-        //                     }
-        //                     */
-        //                 }
-
-        //                 // POTENTIAL ENERGY
-        //                 penergy_temp += (dr < _r_cut and _measure.penergy) * (std::pow(dr, -12.) - std::pow(dr, -6.)); // POTENTIAL ENERGY
-
-        //                 // VIRIAL FOR PRESSURE ... TO BE FIXED IN EXERCISE 4
-
-        //                 virial += (dr < _r_cut and _measure.pressure) * (std::pow(dr, -12.) - 0.5 * std::pow(dr, -6.)); // VIRIAL, multiplication by 48 done after
-        //             }
-        //         }
-
-        std::for_each(std::execution::par, index.cbegin(), index.cend(), [&](const int &part_analyzed)
-                      {
-        for (int other_part = part_analyzed + 1; other_part < _npart; other_part++)
+#pragma omp parallel for ordered reduction(+ : virial, penergy_temp)
+        for (int analyzed = 0; analyzed < _npart - 1; analyzed++)
         {
-            distance(0) = this->pbc(_particle(part_analyzed).getposition(0, true) - _particle(other_part).getposition(0, true), 0);
-            distance(1) = this->pbc(_particle(part_analyzed).getposition(1, true) - _particle(other_part).getposition(1, true), 1);
-            distance(2) = this->pbc(_particle(part_analyzed).getposition(2, true) - _particle(other_part).getposition(2, true), 2);
-            double dr_squared = dot(distance, distance);
-            // GOFR ... TO BE FIXED IN EXERCISE 7
-            if (_measure.gofr)
+            for (int other = analyzed + 1; other < _npart; other++)
             {
-                // Ragionando sulla condizione ho trovato un modo per trovare l'indice ed evitare quindi il ciclo for
-                int index_to_insert_gofr = static_cast<int>(std::sqrt(dr_squared / (_bin_size * _bin_size))); // Voglio essere sicuro che faccia un troncamento verso il basso
-                _measurement(_measure.idx_gofr + index_to_insert_gofr) += 2;
+                arma::vec3 distance;
+                distance(0) = this->pbc(_particle(analyzed).getposition(0, true) - _particle(other).getposition(0, true), 0);
+                distance(1) = this->pbc(_particle(analyzed).getposition(1, true) - _particle(other).getposition(1, true), 1);
+                distance(2) = this->pbc(_particle(analyzed).getposition(2, true) - _particle(other).getposition(2, true), 2);
+                double dr_squared = arma::dot(distance, distance);
+
+                // std::cerr << "came here after distance\n";
+                // GOFR ... TO BE FIXED IN EXERCISE 7
+                if (_measure.gofr)
+                {
+                    // Ragionando sulla condizione ho trovato un modo per trovare l'indice ed evitare quindi il ciclo for
+                    int index_to_insert_gofr = static_cast<int>(std::floor(std::sqrt(dr_squared / (_bin_size * _bin_size)))); // Voglio essere sicuro che faccia un troncamento verso il basso
+                    assert(index_to_insert_gofr < _n_bins && "Index out of bounds");
+                    _measurement(_measure.idx_gofr + index_to_insert_gofr) += 2;
+                    /*
+                    for (int i = 0; i < _n_bins; i++)
+                    {
+                        if (dr > i* _bin_size && dr < (i+1) * _bin_size)
+                            {
+                            _measurement(_measure.idx_gofr + i) += 2;
+                        }
+                    }
+                    */
+                }
+                // std::cerr << "Came here after gofr\n";
+
+                // POTENTIAL ENERGY
+                penergy_temp += (dr_squared < _r_cut_squared and _measure.penergy) * (std::pow(dr_squared, -6.) - std::pow(dr_squared, -3.)); // POTENTIAL ENERGY
+
+                // VIRIAL FOR PRESSURE ... TO BE FIXED IN EXERCISE 4
+
+                virial += (dr_squared < _r_cut_squared and _measure.pressure) * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after
             }
+        }
 
-            penergy_temp += (dr_squared < _r_cut_squared and _measure.penergy) *( pow(dr_squared, -6.) - pow(dr_squared, -3.)); // POTENTIAL ENERGY ( 1.0 / pow(dr, 12.) - 1.0 / pow(dr, 6.))
+        // std::cerr << "came here after virial\n";
+        // std::for_each(std::execution::par, index.cbegin(), index.cend(), [&](const int &part_analyzed)
+        //               {
+        // for (int other_part = part_analyzed + 1; other_part < _npart; other_part++)
+        // {
+        //     arma::vec3 distance;
+        //     distance(0) = this->pbc(_particle(part_analyzed).getposition(0, true) - _particle(other_part).getposition(0, true), 0);
+        //     distance(1) = this->pbc(_particle(part_analyzed).getposition(1, true) - _particle(other_part).getposition(1, true), 1);
+        //     distance(2) = this->pbc(_particle(part_analyzed).getposition(2, true) - _particle(other_part).getposition(2, true), 2);
+        //     double dr_squared = dot(distance, distance);
+        //     // GOFR ... TO BE FIXED IN EXERCISE 7
+        //     if (_measure.gofr)
+        //     {
+        //         // Ragionando sulla condizione ho trovato un modo per trovare l'indice ed evitare quindi il ciclo for
+        //         int index_to_insert_gofr = static_cast<int>(std::sqrt(dr_squared / (_bin_size * _bin_size))); // Voglio essere sicuro che faccia un troncamento verso il basso
+        //         _measurement(_measure.idx_gofr + index_to_insert_gofr) += 2;
+        //     }
 
-            // PRESSURE ... TO BE FIXED IN EXERCISE 4
-            virial +=  (dr_squared < _r_cut_squared and _measure.pressure) * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after, std::pow(dr, -12.) - 0.5 * std::pow(dr, -6.)
+        //     penergy_temp += (dr_squared < _r_cut_squared and _measure.penergy) *( pow(dr_squared, -6.) - pow(dr_squared, -3.)); // POTENTIAL ENERGY ( 1.0 / pow(dr, 12.) - 1.0 / pow(dr, 6.))
 
-
-        } });
+        //     // PRESSURE ... TO BE FIXED IN EXERCISE 4
+        //     virial +=  (dr_squared < _r_cut_squared and _measure.pressure) * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after, std::pow(dr, -12.) - 0.5 * std::pow(dr, -6.)
+        // } });
     }
 
     // POTENTIAL ENERGY //////////////////////////////////////////////////////////
@@ -1013,9 +1017,9 @@ void System::measure()
 
         for (int i = 0; i < _npart; i++)
         {
-            double s_i = double(_particle(i).getspin());
-            magnetization += s_i;
+            magnetization += double(_particle(i).getspin());
         }
+
         magnetization /= static_cast<double>(_npart);
         _measurement(_measure.idx_magnet) = magnetization; // this function as it is
     }
@@ -1196,7 +1200,7 @@ void System::averages(const int blk)
 /// @return Computed error
 double System::error(const double acc, const double acc2, const int blk)
 {
-    return (blk <= 1) ? 0.0 : sqrt(fabs(acc2 / double(blk) - pow(acc / double(blk), 2)) / double(blk));
+    return (blk <= 1) ? 0.0 : std::sqrt(std::fabs(acc2 / double(blk) - std::pow(acc / double(blk), 2)) / double(blk));
 }
 
 /****************************************************************
