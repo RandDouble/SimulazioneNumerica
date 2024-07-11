@@ -11,25 +11,30 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #include "system.h"
 #include <iostream>
 
-#define NDEBUG
-
 /// @brief Function for parsing command line option, it can be extended
 /// @param argc
 /// @param argv
 /// @return
 /// @author Stefano Pilosio
 /// @date 25th March 2024
-bool check_write_to_file(int argc, char *argv[]);
+bool check_write_to_file(int argc, char* argv[]);
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 
     int nconf = 1;
     System SYS;
+
     SYS.initialize();
+    std::cout << "System initialized\n";
     SYS.initialize_properties();
+    std::cout << "Properties initialized\n";
     SYS.block_reset(0);
     bool write_to_file = check_write_to_file(argc, argv); // Bool checking id user want to wirte resulting config to file
+    if (write_to_file)
+    {
+        std::cout << "Writing to file ENABLED\n";
+    }
 
     for (int i = 0; i < SYS.get_nbl(); i++) // loop over blocks
     {
@@ -39,7 +44,6 @@ int main(int argc, char *argv[])
 
 #ifndef NDEBUG
             std::cout << "Actual step : " << j << "\n";
-#endif // NDEBUG
 
             SYS.measure();
             if (j % 10 == 0) // write every 10 step
@@ -50,7 +54,7 @@ int main(int argc, char *argv[])
                 }
                 nconf++;
             }
-                }
+        }
         SYS.averages(i + 1); // Perform averages for blocks
         SYS.block_reset(i + 1);
     }
@@ -59,7 +63,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-bool check_write_to_file(int argc, char *argv[])
+bool check_write_to_file(int argc, char* argv[])
 {
     for (int i = 1; i < argc; ++i)
     {

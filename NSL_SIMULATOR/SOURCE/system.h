@@ -65,26 +65,26 @@ class System
 {
 
 private:
-    const int _ndim = 3;        // Dimensionality of the system
-    bool _restart;              // Flag indicating if the simulation is restarted
-    SimType _sim_type;          // Type of simulation (e.g., Lennard-Jones, Ising)
-    int _npart;                 // Number of particles
-    int _nblocks;               // Number of blocks for block averaging
-    int _nsteps;                // Number of simulation steps in each block
-    int _nattempts;             // Number of attempted moves
-    int _naccepted;             // Number of accepted moves
-    std::size_t _seed_line = 0; // Line to skip in the seed file
-    double _temp, _beta;        // Temperature and inverse temperature
-    double _rho, _volume;       // Density and volume of the system
-    double _r_cut;              // Cutoff radius for pair interactions
-    double _r_cut_squared;      // Square of cutoff radius for pair interactions
-    double _delta;              // Displacement step for particle moves
-    double _J, _H;              // Parameters for the Ising Hamiltonian
-    vec _side;                  // Box dimensions
-    vec _halfside;              // Half of box dimensions
-    Random _rnd;                // Random number generator
-    field<Particle> _particle;  // Field of particle objects representing the system
-    vec _fx, _fy, _fz;          // Forces on particles along x, y, and z directions
+    const int _ndim{3};        // Dimensionality of the system
+    bool _restart;             // Flag indicating if the simulation is restarted
+    SimType _sim_type;         // Type of simulation (e.g., Lennard-Jones, Ising)
+    int _npart;                // Number of particles
+    int _nblocks;              // Number of blocks for block averaging
+    int _nsteps;               // Number of simulation steps in each block
+    int _nattempts;            // Number of attempted moves
+    int _naccepted;            // Number of accepted moves
+    std::size_t _seed_line{0}; // Line to skip in the seed file
+    double _temp, _beta;       // Temperature and inverse temperature
+    double _rho, _volume;      // Density and volume of the system
+    double _r_cut;             // Cutoff radius for pair interactions
+    double _r_cut_squared;     // Square of cutoff radius for pair interactions
+    double _delta;             // Displacement step for particle moves
+    double _J, _H;             // Parameters for the Ising Hamiltonian
+    vec _side;                 // Box dimensions
+    vec _halfside;             // Half of box dimensions
+    Random _rnd;               // Random number generator
+    field<Particle> _particle; // Field of particle objects representing the system
+    vec _fx, _fy, _fz;         // Forces on particles along x, y, and z directions
 
     // Properties
     int _nprop;             // Number of properties being measured

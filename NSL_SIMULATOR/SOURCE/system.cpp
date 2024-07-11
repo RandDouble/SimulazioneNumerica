@@ -316,6 +316,7 @@ void System ::initialize()
 {
 
     _rnd.Initializer("../INPUT/Primes", "../INPUT/seed.in", _seed_line); // Initialize the random number generator
+    std::cout << "Random number generator initialized\n";
 
     std::ofstream couta("../OUTPUT/acceptance.dat"); // Set the heading line in file ../OUTPUT/acceptance.dat
     couta << "#   N_BLOCK:  ACCEPTANCE:"
@@ -324,6 +325,7 @@ void System ::initialize()
 
     std::ifstream input("../INPUT/input.dat"); // Start reading ../INPUT/input.dat
     std::ofstream coutf;
+    std::cout << "Starting Parsing of input.dat\n";
     coutf.open("../OUTPUT/output.dat");
     std::string property;
     double delta;
@@ -342,24 +344,20 @@ void System ::initialize()
             switch (_sim_type)
             {
             case SimType::LENNARD_JONES_MD:
-                coutf << "LJ MOLECULAR DYNAMICS (NVE) SIMULATION"
-                      << "\n";
+                coutf << "LJ MOLECULAR DYNAMICS (NVE) SIMULATION\n";
                 break;
             case SimType::LENNARD_JONES_MC:
-                coutf << "LJ MONTE CARLO (NVT) SIMULATION"
-                      << "\n";
+                coutf << "LJ MONTE CARLO (NVT) SIMULATION\n";
                 break;
             case SimType::ISING_MRT2:
-                coutf << "ISING 1D MONTE CARLO (MRT^2) SIMULATION"
-                      << '\n'
+                coutf << "ISING 1D MONTE CARLO (MRT^2) SIMULATION\n"
                       << "SIM_TYPE=" << std::setw(4) << static_cast<int>(SimType::ISING_MRT2)
                       << std::setw(6) << _J
                       << std::setw(6) << _H
                       << '\n';
                 break;
             case SimType::GIBBS:
-                coutf << "ISING 1D MONTE CARLO (GIBBS) SIMULATION"
-                      << "\n"
+                coutf << "ISING 1D MONTE CARLO (GIBBS) SIMULATION\n"
                       << "SIM_TYPE=" << std::setw(4) << static_cast<int>(SimType::GIBBS)
                       << std::setw(6) << _J
                       << std::setw(6) << _H
@@ -435,15 +433,16 @@ void System ::initialize()
             input >> _nsteps;
             coutf << "NSTEPS= " << _nsteps << "\n";
         }
+        else if (property == "PRIMES_ROW")
+        {
+            input >> _seed_line;
+            coutf << "PRIMES_ROW= " << _seed_line << "\n";
+        }
         else if (property == "ENDINPUT")
         {
             coutf << "Reading input completed!"
                   << "\n";
             break;
-        }
-        else if (property == "PRIMES_ROW")
-        {
-            input >> _seed_line;
         }
         else
             std::cerr << "PROBLEM: unknown input : " << property << std::endl;
@@ -451,6 +450,7 @@ void System ::initialize()
     input.close();
     this->read_configuration();
     this->initialize_velocities();
+    std::cout << "Ended Parsing Properties\n";
     coutf << "System initialized!"
           << "\n";
     coutf.close();
