@@ -315,14 +315,7 @@ int System ::pbc(int i)
 void System ::initialize()
 {
 
-    int p1, p2; // Read from ../INPUT/Primes a pair of numbers to be used to initialize the RNG
-    std::ifstream Primes("../INPUT/Primes");
-    Primes >> p1 >> p2;
-    Primes.close();
-    int seed[4]; // Read the seed of the RNG
-    std::ifstream Seed("../INPUT/seed.in");
-    Seed >> seed[0] >> seed[1] >> seed[2] >> seed[3];
-    _rnd.SetRandom(seed, p1, p2);
+    _rnd.Initializer("../INPUT/Primes", "../INPUT/seed.in", _seed_line); // Initialize the random number generator
 
     std::ofstream couta("../OUTPUT/acceptance.dat"); // Set the heading line in file ../OUTPUT/acceptance.dat
     couta << "#   N_BLOCK:  ACCEPTANCE:"
@@ -447,6 +440,10 @@ void System ::initialize()
             coutf << "Reading input completed!"
                   << "\n";
             break;
+        }
+        else if (property == "PRIMES_ROW")
+        {
+            input >> _seed_line;
         }
         else
             std::cerr << "PROBLEM: unknown input : " << property << std::endl;
@@ -705,7 +702,7 @@ void System ::initialize_properties()
 void System ::finalize()
 {
     this->write_configuration(); // write to file final config of the system
-    _rnd.SaveSeed();
+    _rnd.SaveSeed("../OUTPUT/seed.out");
     std::ofstream coutf;
 
     for (size_t i = 0; i < _measure.v_streams.size(); i++) // Write to files each measure result

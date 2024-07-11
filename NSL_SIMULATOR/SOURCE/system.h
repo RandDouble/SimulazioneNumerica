@@ -35,7 +35,7 @@ enum class SimType : int
     GIBBS = 3,
 };
 
-std::istream &operator>>(std::istream &in, SimType &type);
+std::istream& operator>>(std::istream& in, SimType& type);
 
 struct measure_flags
 {
@@ -48,15 +48,15 @@ struct measure_flags
     std::vector<std::stringstream> v_streams;            // Vector containing stream to output to file
     std::vector<std::string> output_names;               // Vector containing names of output files
 
-    std::stringstream &stream_penergy() { return v_streams[idx_penergy]; } // Streams for outputting without opening 1000 times a file
-    std::stringstream &stream_kenergy() { return v_streams[idx_kenergy]; }
-    std::stringstream &stream_tenergy() { return v_streams[idx_tenergy]; }
-    std::stringstream &stream_temp() { return v_streams[idx_temp]; }
-    std::stringstream &stream_pressure() { return v_streams[idx_pressure]; }
-    std::stringstream &stream_gofr() { return v_streams[idx_gofr]; }
-    std::stringstream &stream_magnet() { return v_streams[idx_magnet]; }
-    std::stringstream &stream_cv() { return v_streams[idx_cv]; }
-    std::stringstream &stream_chi() { return v_streams[idx_chi]; }
+    std::stringstream& stream_penergy() { return v_streams[idx_penergy]; } // Streams for outputting without opening 1000 times a file
+    std::stringstream& stream_kenergy() { return v_streams[idx_kenergy]; }
+    std::stringstream& stream_tenergy() { return v_streams[idx_tenergy]; }
+    std::stringstream& stream_temp() { return v_streams[idx_temp]; }
+    std::stringstream& stream_pressure() { return v_streams[idx_pressure]; }
+    std::stringstream& stream_gofr() { return v_streams[idx_gofr]; }
+    std::stringstream& stream_magnet() { return v_streams[idx_magnet]; }
+    std::stringstream& stream_cv() { return v_streams[idx_cv]; }
+    std::stringstream& stream_chi() { return v_streams[idx_chi]; }
 
     measure_flags() = default;
 };
@@ -65,25 +65,26 @@ class System
 {
 
 private:
-    const int _ndim = 3;       // Dimensionality of the system
-    bool _restart;             // Flag indicating if the simulation is restarted
-    SimType _sim_type;         // Type of simulation (e.g., Lennard-Jones, Ising)
-    int _npart;                // Number of particles
-    int _nblocks;              // Number of blocks for block averaging
-    int _nsteps;               // Number of simulation steps in each block
-    int _nattempts;            // Number of attempted moves
-    int _naccepted;            // Number of accepted moves
-    double _temp, _beta;       // Temperature and inverse temperature
-    double _rho, _volume;      // Density and volume of the system
-    double _r_cut;             // Cutoff radius for pair interactions
-    double _r_cut_squared;     // Square of cutoff radius for pair interactions
-    double _delta;             // Displacement step for particle moves
-    double _J, _H;             // Parameters for the Ising Hamiltonian
-    vec _side;                 // Box dimensions
-    vec _halfside;             // Half of box dimensions
-    Random _rnd;               // Random number generator
-    field<Particle> _particle; // Field of particle objects representing the system
-    vec _fx, _fy, _fz;         // Forces on particles along x, y, and z directions
+    const int _ndim = 3;        // Dimensionality of the system
+    bool _restart;              // Flag indicating if the simulation is restarted
+    SimType _sim_type;          // Type of simulation (e.g., Lennard-Jones, Ising)
+    int _npart;                 // Number of particles
+    int _nblocks;               // Number of blocks for block averaging
+    int _nsteps;                // Number of simulation steps in each block
+    int _nattempts;             // Number of attempted moves
+    int _naccepted;             // Number of accepted moves
+    std::size_t _seed_line = 0; // Line to skip in the seed file
+    double _temp, _beta;        // Temperature and inverse temperature
+    double _rho, _volume;       // Density and volume of the system
+    double _r_cut;              // Cutoff radius for pair interactions
+    double _r_cut_squared;      // Square of cutoff radius for pair interactions
+    double _delta;              // Displacement step for particle moves
+    double _J, _H;              // Parameters for the Ising Hamiltonian
+    vec _side;                  // Box dimensions
+    vec _halfside;              // Half of box dimensions
+    Random _rnd;                // Random number generator
+    field<Particle> _particle;  // Field of particle objects representing the system
+    vec _fx, _fy, _fz;          // Forces on particles along x, y, and z directions
 
     // Properties
     int _nprop;             // Number of properties being measured
@@ -120,8 +121,8 @@ public:                                                               // Functio
     void Verlet();                                                    // Perform Verlet integration step
     double Force(const int i, const int dim);                         // Calculate force on a particle along a dimension
     double Boltzmann(const int i, const bool xnew);                   // Calculate Boltzmann factor for Metropolis acceptance
-    void general_print(std::ostream &stream, const int blk, const double ave, const double sum_ave, const double sum_ave2);
-    void general_print(std::ostream &stream, const double blk, const double ave, const double sum_ave, const double sum_ave2);
+    void general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double sum_ave2);
+    void general_print(std::ostream& stream, const double blk, const double ave, const double sum_ave, const double sum_ave2);
 };
 
 #endif // __System__
