@@ -1,8 +1,9 @@
-CFLAGS = -O3 --std=c++17\
+CFLAGS = -O3 --std=c++17 -pedantic\
 		 -Wall -Wextra -Werror\
 		 -march=native\
 		 -fopenmp\
 		 -ffast-math
+
 
 
 AFLAGS = -larmadillo
