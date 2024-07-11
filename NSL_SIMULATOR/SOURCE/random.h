@@ -34,6 +34,8 @@ public:
     // destructor
     ~Random() = default;
 
+    // Method to initialize the RNG
+    void Initializer(const std::string& seed_file = "seed.in", const std::string& prime_file = "Primes", const std::size_t rows_to_skip=0ull);
     // Method to set the seed for the RNG
     void SetRandom(int*, int, int);
     // Method to save the seed to a file

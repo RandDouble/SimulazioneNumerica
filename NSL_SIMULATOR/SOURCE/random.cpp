@@ -13,6 +13,51 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 // namespace Sim
 // {
 
+void Random::Initializer(const std::string& seed_file, const std::string& prime_file, const std::size_t rows_to_skip)
+{
+    int seed[4];
+    int p1, p2;
+    std::ifstream Primes(prime_file);
+    if (Primes.is_open())
+    {
+        for (std::size_t i = 0; i < rows_to_skip && !Primes.eof(); ++i)
+        {
+            Primes.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
+        if (!Primes.eof())
+        {
+            Primes >> p1 >> p2;
+        }
+        else
+        {
+            std::cerr << "ERROR: Failed to go to line" << rows_to_skip << " Aborting\n";
+            exit(-1);
+        }
+    }
+    else
+        std::cerr << "PROBLEM: Unable to open Primes" << std::endl;
+    Primes.close();
+
+    std::ifstream input(seed_file);
+    std::string property;
+    if (input.is_open())
+    {
+        while (!input.eof())
+        {
+            input >> property;
+            if (property == "RANDOMSEED")
+            {
+                input >> seed[0] >> seed[1] >> seed[2] >> seed[3];
+                SetRandom(seed, p1, p2);
+            }
+        }
+        input.close();
+    }
+    else
+        std::cerr << "PROBLEM: Unable to open seed.in" << std::endl;
+}
+
+
 void Random ::SaveSeed(const std::string& filename) const
 {
     std::ofstream WriteSeed;
