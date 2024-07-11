@@ -4,8 +4,6 @@ CFLAGS = -O3 --std=c++17 -pedantic\
 		 -fopenmp\
 		 -ffast-math
 
-
-
 AFLAGS = -larmadillo
 
 # Choosing some option for different compilers
@@ -22,7 +20,7 @@ else ifeq ($(COMPILER), GNU)
 	AFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP
 	CC = clang++-17
-	CFLAGS+= -stdlib=libc++ -fexperimental-library
+	CFLAGS+= -stdlib=libc++ -fexperimental-library -DNDEBUG
 endif
 
 all: simulator.exe
