@@ -80,8 +80,8 @@ private:
     double _r_cut_squared;     // Square of cutoff radius for pair interactions
     double _delta;             // Displacement step for particle moves
     double _J, _H;             // Parameters for the Ising Hamiltonian
-    vec _side;                 // Box dimensions
-    vec _halfside;             // Half of box dimensions
+    arma::vec3 _side;          // Box dimensions
+    arma::vec3 _halfside;      // Half of box dimensions
     Random _rnd;               // Random number generator
     field<Particle> _particle; // Field of particle objects representing the system
     vec _fx, _fy, _fz;         // Forces on particles along x, y, and z directions
@@ -116,11 +116,15 @@ public:                                                               // Functio
     double error(const double acc, const double acc2, const int blk); // Compute error
     void move(const int part);                                        // Move a particle
     bool metro(int part);                                             // Perform Metropolis acceptance-rejection step
-    double pbc(double position, int i);                               // Apply periodic boundary conditions for coordinates
-    int pbc(int i);                                                   // Apply periodic boundary conditions for spins
-    void Verlet();                                                    // Perform Verlet integration step
-    double Force(const int i, const int dim);                         // Calculate force on a particle along a dimension
-    double Boltzmann(const int i, const bool xnew);                   // Calculate Boltzmann factor for Metropolis acceptance
+
+    double pbc(const double position, int i);   // Apply periodic boundary conditions for coordinates
+    int pbc(int i);                             // Apply periodic boundary conditions for spins
+    arma::vec3 pbc(const arma::vec3& position); // Apply periodic boundary conditions for vectors
+
+    void Verlet();                                  // Perform Verlet integration step
+    arma::vec3 Force(const int i);                  // Calculate force on a particle along a dimension
+    double Boltzmann(const int i, const bool xnew); // Calculate Boltzmann factor for Metropolis acceptance
+
     void general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double sum_ave2);
     void general_print(std::ostream& stream, const double blk, const double ave, const double sum_ave, const double sum_ave2);
 };

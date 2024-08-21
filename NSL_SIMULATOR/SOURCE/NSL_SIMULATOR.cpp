@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 
 #ifndef NDEBUG
             std::cout << "Actual step : " << j << "\n";
-
+#endif
             SYS.measure();
             if (j % 10 == 0) // write every 10 step
             {
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
         SYS.block_reset(i + 1);
     }
     SYS.finalize();
-
+    std::cout << "ENDING\n";
     return 0;
 }
 
