@@ -1,78 +1,12 @@
-from subprocess import Popen, PIPE, STDOUT
 import shutil
 from pathlib import Path
-from enum import Enum, auto
-import io
-import os
 from typing import List, Any
 
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-
-class Phase(Enum):
-    SOLID = auto()
-    LIQUID = auto()
-    GAS = auto()
-
-
-def compile_program() -> None:
-    with Popen(
-        "make -C NSL_SIMULATOR/SOURCE/".split(), stdout=PIPE, stderr=STDOUT
-    ) as proc:
-        for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
-            print(line)
-        # print(proc.stdout.read())
-    print("Program compiled")
-
-
-def load_config(
-    phase: Phase,
-    src_dir: Path = Path("eser_4/equilibration_conf"),
-    reset_flag: bool = False,
-) -> None:
-    phase_name = phase.name.lower()
-    print(f"Actually working on phase : {phase.name}")
-    dest_dir = Path("NSL_SIMULATOR/INPUT")
-
-    shutil.copy(src_dir / f"input.{phase_name}", dest_dir / "input.dat")
-    print(f"Configuration for phase {phase_name} loaded")
-    shutil.copy(src_dir / "properties.dat", dest_dir / "properties.dat")
-    print("Properties loaded")
-
-    if reset_flag:
-        shutil.copy(
-            src_dir / f"config_{phase_name}.xyz", dest_dir / "CONFIG/config.xyz"
-        )
-        shutil.copy(
-            src_dir / f"velocities_{phase_name}.out", dest_dir / "CONFIG/velocities.in"
-        )
-    else:
-        shutil.copy(src_dir / "config.xyz", dest_dir / "CONFIG/config.xyz")
-
-
-def run_program(exe_dir: Path, save_config: bool = False) -> None:
-    cur_dir = Path(os.getcwd())
-    # Changing directory to the executable directory because NSL_SIMULATOR depends on relative paths.
-    os.chdir(exe_dir)
-    print(os.getcwd())
-    command = ["./simulator.exe"]
-    if save_config:
-        command.append("--write-config")
-
-    print(command)
-
-    with Popen(
-        command,
-        stdout=PIPE,
-        stderr=STDOUT,  # , cwd=os.getcwd()
-    ) as proc:
-        for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
-            print(line)
-
-    os.chdir(cur_dir)
-    print("Program executed")
+from scripts.preparation import Phase
 
 
 def save_result_eq(phase: Phase) -> None:
@@ -89,13 +23,16 @@ def save_result_eq(phase: Phase) -> None:
         "CONFIG/config.xyz",
     ]
 
-    os.makedirs(f"eser_4/equilibration_result/{phase_name}", exist_ok=True)
+    starting_dir = Path("NSL_SIMULATOR/OUTPUT")
+
+    res_dir = Path(f"eser_4/equilibration_result/{phase_name}")
+    res_dir.mkdir(parents=True, exist_ok=True)
 
     for file in file_list_to_copy:
         res_file = file.removeprefix("CONFIG/")
         shutil.copy(
-            f"NSL_SIMULATOR/OUTPUT/{file}",
-            f"eser_4/equilibration_result/{phase_name}/{res_file}",
+            starting_dir / file,
+            res_dir / res_file,
         )
 
         print(f"Copying {file} to eser_4/equilibration_result/{phase_name}/{res_file}")
@@ -104,9 +41,7 @@ def save_result_eq(phase: Phase) -> None:
             res_file = res_file.replace(".xyz", f"_{phase_name}.xyz").replace(
                 ".out", f"_{phase_name}.out"
             )
-            shutil.copy(
-                f"NSL_SIMULATOR/OUTPUT/{file}", f"eser_4/measure_conf/{res_file}"
-            )
+            shutil.copy(starting_dir / file, f"eser_4/measure_conf/{res_file}")
             print(f"Copying {file} to eser_4/measure_conf/{res_file}")
 
     print(f"Results for phase {phase_name} saved")
@@ -126,13 +61,16 @@ def save_result_meas(phase: Phase) -> None:
         "CONFIG/config.xyz",
     ]
 
-    os.makedirs(f"eser_4/measure_result/{phase_name}", exist_ok=True)
+    starting_dir = Path("NSL_SIMULATOR/OUTPUT")
+
+    res_dir = Path(f"eser_4/measure_result/{phase_name}")
+    res_dir.mkdir(parents=True, exist_ok=True)
 
     for file in file_list_to_copy:
         res_file = file.removeprefix("CONFIG/")
         shutil.copy(
-            f"NSL_SIMULATOR/OUTPUT/{file}",
-            f"eser_4/measure_result/{phase_name}/{res_file}",
+            starting_dir / file,
+            res_dir / res_file,
         )
 
         print(f"Copying {file} to eser_4/measure_result/{phase_name}/{res_file}")
@@ -214,14 +152,13 @@ def print_resulting_data(*dataframes) -> list[Figure, Any]:
 
 def save_configurations(phase: Phase) -> None:
     phase_name = phase.name.lower()
-    dir_to_copy = "CONFIG/"
+    dir_to_copy = Path("NSL_SIMULATOR/OUTPUT/CONFIG")
 
-    os.makedirs(f"eser_4/equilibration_result/{phase_name}_config", exist_ok=True)
+    eq_res_dir = Path(f"eser_4/equilibration_result/{phase_name}_config")
 
-    shutil.copytree(
-        f"NSL_SIMULATOR/OUTPUT/{dir_to_copy}",
-        f"eser_4/equilibration_result/{phase_name}_config",
-    )
+    eq_res_dir.mkdir(parents=True, exist_ok=True)
+
+    shutil.copytree(dir_to_copy, eq_res_dir)
     print(f"Copying CONFIG to eser_4/equilibration_result/{phase_name}_config")
 
     print(f"Results for phase {phase_name} saved")

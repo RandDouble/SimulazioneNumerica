@@ -43,6 +43,16 @@ def print_autocorr(autocorr: np.ndarray, popt: np.ndarray) -> tuple[Figure, Axes
     return fig, ax
 
 
+def data_blocking(data: np.ndarray, block_size: int) -> np.ndarray:
+    n_blocks, remainder = divmod(data.size, block_size)
+    assert remainder == 0, "Data size must be a multiple of block size"
+
+    blocked_data = data.reshape(n_blocks, block_size)
+    mean_data = blocked_data.std(axis=1)
+
+    return mean_data
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
