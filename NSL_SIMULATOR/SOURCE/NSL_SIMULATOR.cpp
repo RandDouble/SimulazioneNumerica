@@ -41,10 +41,6 @@ int main(int argc, char* argv[])
         for (int j = 0; j < SYS.get_nsteps(); j++) // loop over steps in a block
         {
             SYS.step();
-
-#ifndef NDEBUG
-            std::cout << "Actual step : " << j << "\n";
-#endif
             SYS.measure();
             if (j % 10 == 0) // write every 10 step
             {

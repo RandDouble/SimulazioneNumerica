@@ -39,14 +39,14 @@ std::istream& operator>>(std::istream& in, SimType& type);
 
 struct measure_flags
 {
-    bool penergy{false}, kenergy{false}, tenergy{false}; // Flags for measuring different energies
-    bool temp{false}, pressure{false}, gofr{false};      // Flags for measuring temperature, pressure, and radial dist. function
-    bool magnet{false}, cv{false}, chi{false};           // Flags for measuring magnetization, heat capacity, and susceptibility
-    int idx_penergy{0}, idx_kenergy{0}, idx_tenergy{0};  // Indices for accessing energy-related properties in vec _measurement
-    int idx_temp{0}, idx_pressure{0}, idx_gofr{0};       // Indices for accessing temperature, pressure, and radial dist. function
-    int idx_magnet{0}, idx_cv{0}, idx_chi{0};            // Indices for accessing magnetization, heat capacity, and susceptibility
-    std::vector<std::stringstream> v_streams;            // Vector containing stream to output to file
-    std::vector<std::string> output_names;               // Vector containing names of output files
+    bool penergy{false}, kenergy{false}, tenergy{false};         // Flags for measuring different energies
+    bool temp{false}, pressure{false}, gofr{false};              // Flags for measuring temperature, pressure, and radial dist. function
+    bool magnet{false}, cv{false}, chi{false};                   // Flags for measuring magnetization, heat capacity, and susceptibility
+    unsigned int idx_penergy{0}, idx_kenergy{0}, idx_tenergy{0}; // Indices for accessing energy-related properties in vec _measurement
+    unsigned int idx_temp{0}, idx_pressure{0}, idx_gofr{0};      // Indices for accessing temperature, pressure, and radial dist. function
+    unsigned int idx_magnet{0}, idx_cv{0}, idx_chi{0};           // Indices for accessing magnetization, heat capacity, and susceptibility
+    std::vector<std::stringstream> v_streams;                    // Vector containing stream to output to file
+    std::vector<std::string> output_names;                       // Vector containing names of output files
 
     std::stringstream& stream_penergy() { return v_streams[idx_penergy]; } // Streams for outputting without opening 1000 times a file
     std::stringstream& stream_kenergy() { return v_streams[idx_kenergy]; }
@@ -65,31 +65,32 @@ class System
 {
 
 private:
-    const int _ndim{3};        // Dimensionality of the system
-    bool _restart;             // Flag indicating if the simulation is restarted
-    SimType _sim_type;         // Type of simulation (e.g., Lennard-Jones, Ising)
-    int _npart;                // Number of particles
-    int _nblocks;              // Number of blocks for block averaging
-    int _nsteps;               // Number of simulation steps in each block
-    int _nattempts;            // Number of attempted moves
-    int _naccepted;            // Number of accepted moves
-    std::size_t _seed_line{0}; // Line to skip in the seed file
-    double _temp, _beta;       // Temperature and inverse temperature
-    double _rho, _volume;      // Density and volume of the system
-    double _r_cut;             // Cutoff radius for pair interactions
-    double _r_cut_squared;     // Square of cutoff radius for pair interactions
-    double _delta;             // Displacement step for particle moves
-    double _J, _H;             // Parameters for the Ising Hamiltonian
-    arma::vec3 _side;          // Box dimensions
-    arma::vec3 _halfside;      // Half of box dimensions
-    Random _rnd;               // Random number generator
-    field<Particle> _particle; // Field of particle objects representing the system
-    vec _fx, _fy, _fz;         // Forces on particles along x, y, and z directions
+    const int _ndim{3};         // Dimensionality of the system
+    bool _restart;              // Flag indicating if the simulation is restarted
+    SimType _sim_type;          // Type of simulation (e.g., Lennard-Jones, Ising)
+    unsigned int _npart;        // Number of particles
+    unsigned int _nblocks;      // Number of blocks for block averaging
+    unsigned int _nsteps;       // Number of simulation steps in each block
+    unsigned int _nattempts;    // Number of attempted moves
+    unsigned int _naccepted;    // Number of accepted moves
+    std::size_t _seed_line{0};  // Line to skip in the seed file
+    double _temp, _beta;        // Temperature and inverse temperature
+    double _rho, _volume;       // Density and volume of the system
+    double _r_cut;              // Cutoff radius for pair interactions
+    double _r_cut_squared;      // Square of cutoff radius for pair interactions
+    double _r_gofr_cut_squared; // Square of cutoff radius for radial distribution function
+    double _delta;              // Displacement step for particle moves
+    double _J, _H;              // Parameters for the Ising Hamiltonian
+    arma::vec3 _side;           // Box dimensions
+    arma::vec3 _halfside;       // Half of box dimensions
+    Random _rnd;                // Random number generator
+    field<Particle> _particle;  // Field of particle objects representing the system
+    vec _fx, _fy, _fz;          // Forces on particles along x, y, and z directions
 
     // Properties
     int _nprop;             // Number of properties being measured
     measure_flags _measure; // Container for various flags and relative index to measure properties
-    int _n_bins;            // Number of bins for radial distribution function
+    unsigned int _n_bins;   // Number of bins for radial distribution function
     double _bin_size;       // Size of bins for radial distribution function
     double _vtail, _ptail;  // Tail corrections for energy and pressure
     vec _block_av;          // Block averages of properties
@@ -115,18 +116,21 @@ public:                                                               // Functio
     void averages(const int blk);                                     // Compute averages of properties
     double error(const double acc, const double acc2, const int blk); // Compute error
     void move(const int part);                                        // Move a particle
-    bool metro(int part);                                             // Perform Metropolis acceptance-rejection step
+    bool metro(const unsigned int part);                              // Perform Metropolis acceptance-rejection step
 
-    double pbc(const double position, int i);   // Apply periodic boundary conditions for coordinates
-    int pbc(int i);                             // Apply periodic boundary conditions for spins
-    arma::vec3 pbc(const arma::vec3& position); // Apply periodic boundary conditions for vectors
+    double pbc(const double position, const unsigned int i); // Apply periodic boundary conditions for coordinates
+    int pbc(const unsigned int i);                           // Apply periodic boundary conditions for spins
+    arma::vec3 pbc(const arma::vec3& position);              // Apply periodic boundary conditions for vectors
+    arma::vec3 particle_distance(const arma::vec3& first, const arma::vec3& second);
+    double particle_distance_squared(const arma::vec3& first, const arma::vec3& second);
 
-    void Verlet();                                  // Perform Verlet integration step
-    arma::vec3 Force(const int i);                  // Calculate force on a particle along a dimension
-    double Boltzmann(const int i, const bool xnew); // Calculate Boltzmann factor for Metropolis acceptance
+    void Verlet();                                           // Perform Verlet integration step
+    arma::vec3 Force(const unsigned int i);                  // Calculate force on a particle along a dimension
+    double Boltzmann(const unsigned int i, const bool xnew); // Calculate Boltzmann factor for Metropolis acceptance
 
     void general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double sum_ave2);
     void general_print(std::ostream& stream, const double blk, const double ave, const double sum_ave, const double sum_ave2);
+    void final_gofr_print(std::ostream& stream, const unsigned int blk, const double bin, const double sum_ave, const double sum_ave2);
 };
 
 #endif // __System__

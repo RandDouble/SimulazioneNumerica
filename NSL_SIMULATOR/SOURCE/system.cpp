@@ -51,7 +51,7 @@ void System::step()
         break;
 
     default:
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             this->move(int(_rnd.Rannyu() * _npart));
         }
@@ -67,9 +67,9 @@ void System::Verlet()
 {
 
     // #pragma omp parallel for ordered
-    for (int i = 0; i < _npart; i++)
+    for (unsigned int i = 0; i < _npart; i++)
     { // Force acting on particle i
-        auto force = this->Force(i);
+        const auto force = this->Force(i);
         // force.print("Force");
         _fx(i) = force(0);
         _fy(i) = force(1);
@@ -82,13 +82,13 @@ void System::Verlet()
     // #pragma omp barrier
 
 #pragma omp parallel for
-    for (int i = 0; i < _npart; i++)
+    for (unsigned int i = 0; i < _npart; i++)
     { // Verlet integration scheme
-        arma::vec3 new_pos(arma::fill::zeros);
+        const arma::vec3 new_pos = {
+            this->pbc(2.0 * _particle(i).get_position(0, true) - _particle(i).get_position(0, false) + _fx(i) * pow(_delta, 2), 0),
+            this->pbc(2.0 * _particle(i).get_position(1, true) - _particle(i).get_position(1, false) + _fy(i) * pow(_delta, 2), 1),
+            this->pbc(2.0 * _particle(i).get_position(2, true) - _particle(i).get_position(2, false) + _fz(i) * pow(_delta, 2), 2)};
 
-        new_pos(0) = this->pbc(2.0 * _particle(i).get_position(0, true) - _particle(i).get_position(0, false) + _fx(i) * pow(_delta, 2), 0);
-        new_pos(1) = this->pbc(2.0 * _particle(i).get_position(1, true) - _particle(i).get_position(1, false) + _fy(i) * pow(_delta, 2), 1);
-        new_pos(2) = this->pbc(2.0 * _particle(i).get_position(2, true) - _particle(i).get_position(2, false) + _fz(i) * pow(_delta, 2), 2);
         _particle(i).set_velocity(0, this->pbc(new_pos(0) - _particle(i).get_position(0, false), 0) / (2.0 * _delta));
         _particle(i).set_velocity(1, this->pbc(new_pos(1) - _particle(i).get_position(1, false), 1) / (2.0 * _delta));
         _particle(i).set_velocity(2, this->pbc(new_pos(2) - _particle(i).get_position(2, false), 2) / (2.0 * _delta));
@@ -108,25 +108,22 @@ void System::Verlet()
 /// @param i
 /// @param dimf
 /// @return
-arma::vec3 System::Force(const int i)
+arma::vec3 System::Force(const unsigned int i)
 {
     arma::vec3 f;
 #ifndef NDEBUG_FORCE
     std::vector<double> force_history;
     bool proced = false;
 #endif
-    for (int j = 0; j < _npart; j++)
+    for (unsigned int j = 0; j < _npart; j++)
     {
 #ifndef NDEBUG_FORCE
         force_history.push_back(f);
 #endif
         if (i != j)
         {
-            arma::vec3 distance;
-            distance(0) = this->pbc(_particle(i).get_position(0, true) - _particle(j).get_position(0, true), 0);
-            distance(1) = this->pbc(_particle(i).get_position(1, true) - _particle(j).get_position(1, true), 1);
-            distance(2) = this->pbc(_particle(i).get_position(2, true) - _particle(j).get_position(2, true), 2);
-            double dr_square = arma::dot(distance, distance);
+            const arma::vec3 distance = particle_distance(_particle(i).get_position(true), _particle(j).get_position(true));
+            const double dr_square = arma::dot(distance, distance);
 
             f += distance * (dr_square < _r_cut_squared) * (pow(dr_square, -7.) - 0.5 * pow(dr_square, -4.)); // Moved * 48. after for loop
                                                                                                               // f += distance(dim) * (48.0 / pow(dr, 14) - 24.0 / pow(dr, 8));
@@ -170,13 +167,13 @@ void System ::move(const int i)
     {
         // To be fixed in EXERCISE 6
         // 1. Choosing spin to change at random
-        int idx_spin = static_cast<int>(std::floor(_rnd.Rannyu(0., _npart)));
+        const int idx_spin = static_cast<int>(std::floor(_rnd.Rannyu(0., _npart)));
 
         // 2. Compute energy of nearest spins
-        int spin_sum = _particle(pbc(idx_spin - 1)).get_spin() + _particle(pbc(idx_spin + 1)).get_spin();
-        double delta_E = _J * spin_sum + _H;
+        const int spin_sum = _particle(pbc(idx_spin - 1)).get_spin() + _particle(pbc(idx_spin + 1)).get_spin();
+        const double delta_E = _J * spin_sum + _H;
         // 3. Compute Change
-        int new_spin = (_rnd.Rannyu() < (1. / (1. + std::exp(-2. * _beta * delta_E)))) ? 1 : -1;
+        const int new_spin = (_rnd.Rannyu() < (1. / (1. + std::exp(-2. * _beta * delta_E)))) ? 1 : -1;
 
         _particle(idx_spin).set_spin(new_spin);
 
@@ -186,12 +183,10 @@ void System ::move(const int i)
     break;
 
     case SimType::LENNARD_JONES_MC:
-    {                     // M(RT)^2 LJ system
-        vec shift(_ndim); // Will store the proposed translation
-        for (int j = 0; j < _ndim; j++)
-        {
-            shift(j) = _rnd.Rannyu(-1.0, 1.0) * _delta; // uniform distribution in [-_delta;_delta)
-        }
+    {                                                                                          // M(RT)^2 LJ system
+        arma::vec3 shift = {_rnd.Rannyu(-1., 1.), _rnd.Rannyu(-1., 1.), _rnd.Rannyu(-1., 1.)}; // Will store the proposed translation
+        shift *= _delta;                                                                       // Scale the shift to the proper size
+
         _particle(i).translate(shift, _side); // Call the function Particle::translate
         if (this->metro(i))
         { // Metropolis acceptance evaluation
@@ -203,7 +198,7 @@ void System ::move(const int i)
     }
     break;
     case SimType::LENNARD_JONES_MD:
-        std::cerr << "Not Implemented Yet!!!\n";
+        std::cerr << "You shouldn't be here\n";
         exit(-2);
         break;
     case SimType::ISING_MRT2:
@@ -227,13 +222,13 @@ void System ::move(const int i)
 /// @brief Implements Metropolis Algorithm on u-th partcile
 /// @param i
 /// @return if step was accepted or not.
-bool System::metro(const int i)
+bool System::metro(const unsigned int i)
 {
     double delta_E, acceptance;
     switch (_sim_type)
     {
     case SimType::LENNARD_JONES_MC:
-        delta_E = this->Boltzmann(i, true) - this->Boltzmann(i, false);
+        delta_E = Boltzmann(i, true) - Boltzmann(i, false);
         break;
 
     case SimType::ISING_MRT2:
@@ -247,36 +242,29 @@ bool System::metro(const int i)
 
     acceptance = std::exp(-_beta * delta_E);
     // Usually acceptace is min(1, p(new) / p(old)), with exponential this is not necessary, with this extraction, min function is achieved by _rnd.Rannyu()
-    bool decision = (_rnd.Rannyu() < acceptance); // Metropolis acceptance step
+    const bool decision = (_rnd.Rannyu() < acceptance); // Metropolis acceptance step
 
     return decision;
 }
 
-double System ::Boltzmann(const int i, const bool xnew)
+double System ::Boltzmann(const unsigned int i, const bool xnew)
 {
     double energy_i = 0.0;
-    // double dx, dy, dz, dr;
 // Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa sistemare un filino come codice.
 #pragma omp parallel for reduction(+ : energy_i)
-    for (int j = 0; j < _npart; j++)
+    for (unsigned int j = 0; j < _npart; j++)
     {
-        if (j != i)
-        {
-            double dx = this->pbc(_particle(i).get_position(0, xnew) - _particle(j).get_position(0, 1), 0);
-            double dy = this->pbc(_particle(i).get_position(1, xnew) - _particle(j).get_position(1, 1), 1);
-            double dz = this->pbc(_particle(i).get_position(2, xnew) - _particle(j).get_position(2, 1), 2);
-            double dr_squared = dx * dx + dy * dy + dz * dz;
-            // dr =
-            // dr = std::sqrt(dr);
 
-            energy_i += (dr_squared < _r_cut_squared) * (pow(dr_squared, -6.) - pow(dr_squared, -3.)); // Potential energy calculation (pow(dr, -12.) - pow(dr, -6.))
-        }
+        const double dr_squared = particle_distance_squared(_particle(i).get_position(xnew), _particle(j).get_position(1));
+        const double energy_par = (j == i) ? 0. : (std::pow(dr_squared, -6.) - std::pow(dr_squared, -3.));
+
+        energy_i += (dr_squared < _r_cut_squared) * energy_par; // Potential energy calculation (pow(dr, -12.) - pow(dr, -6.))
     }
     energy_i *= 4.0;
     return energy_i;
 }
 
-// @brief Print block information to stream
+/// @brief Print block information to stream
 void System::general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double sum_ave2)
 {
     stream.precision(8);
@@ -295,24 +283,36 @@ void System::general_print(std::ostream& stream, const double blk, const double 
            << std::setw(14) << this->error(sum_ave, sum_ave2, blk) << "\n";
 }
 
+void System::final_gofr_print(std::ostream& stream, const unsigned int blk, const double bin, const double sum_ave, const double sum_ave2)
+{
+    stream.precision(8);
+    stream << std::setw(8) << bin
+           << std::setw(14) << sum_ave / double(blk)
+           << std::setw(14) << this->error(sum_ave, sum_ave2, blk) << "\n";
+}
+
 /// @brief Enforce periodic boundary conditions
 /// @param position
 /// @param i
 /// @return Returns position after Boudary Condition are applied
-double System::pbc(const double position, int i)
+double System::pbc(const double position, const unsigned int i)
 {
     return position - _side(i) * std::rint(position / _side(i));
 }
 
 arma::vec3 System::pbc(const arma::vec3& position)
 {
-    return position - _side % arma::floor(position / _side);
+    const arma::vec3 res = {
+        position(0) - _side(0) * std::rint(position(0) / _side(0)),
+        position(1) - _side(1) * std::rint(position(1) / _side(1)),
+        position(2) - _side(2) * std::rint(position(2) / _side(2))};
+    return res;
 }
 
 /// @brief Enforce periodic boundary conditions for spins
 /// @param i
 /// @return Return Spins after proper Boundary Condition are applied
-int System ::pbc(int i)
+int System ::pbc(unsigned int i)
 {
     if (i >= _npart)
         i = i - _npart;
@@ -392,10 +392,10 @@ void System ::initialize()
             _fy.resize(_npart);
             _fz.resize(_npart);
             _particle.set_size(_npart);
-            for (int i = 0; i < _npart; i++)
+            for (unsigned int i = 0; i < _npart; i++)
             {
                 _particle(i).initialize();
-                if (_rnd.Rannyu() > 0.5)
+                if (_rnd.Ranint() & 1)   // Control only if odd, if it is continues
                     _particle(i).flip(); // to randomize the spin configuration
             }
             coutf << "NPART= " << _npart << "\n";
@@ -477,7 +477,7 @@ void System::initialize_velocities()
         if (cinf.is_open())
         {
             double vx, vy, vz;
-            for (int i = 0; i < _npart; i++)
+            for (unsigned int i = 0; i < _npart; i++)
             {
                 cinf >> vx >> vy >> vz;
                 _particle(i).set_velocity(0, vx);
@@ -494,7 +494,7 @@ void System::initialize_velocities()
         vec vx(_npart), vy(_npart), vz(_npart);
         vec sumv(_ndim);
         sumv.zeros();
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             vx(i) = _rnd.Gauss(0., std::sqrt(_temp));
             vy(i) = _rnd.Gauss(0., std::sqrt(_temp));
@@ -502,8 +502,6 @@ void System::initialize_velocities()
             sumv(0) += vx(i);
             sumv(1) += vy(i);
             sumv(2) += vz(i);
-            // std::cout << "Velocity : " << vx(i) << '\t' << vy(i) << '\t' << vz(i) << '\n';
-            // std::cout << "Random Number  Generator Test : " << _rnd.Gauss(0.,  std::sqrt(_temp)) << '\n';
         }
 
         for (int idim = 0; idim < _ndim; idim++)
@@ -512,7 +510,7 @@ void System::initialize_velocities()
         }
 
         double sumv2 = 0.0, scalef = 0.0;
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             vx(i) = vx(i) - sumv(0);
             vy(i) = vy(i) - sumv(1);
@@ -522,7 +520,7 @@ void System::initialize_velocities()
 
         sumv2 /= double(_npart);
         scalef = std::sqrt(3.0 * _temp / sumv2); // velocity scale factor
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             _particle(i).set_velocity(0, vx(i) * scalef);
             _particle(i).set_velocity(1, vy(i) * scalef);
@@ -532,7 +530,7 @@ void System::initialize_velocities()
 
     if (_sim_type == SimType::LENNARD_JONES_MD)
     {
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             double xold = this->pbc(_particle(i).get_position(0, true) - _particle(i).get_velocity(0) * _delta, 0);
             double yold = this->pbc(_particle(i).get_position(1, true) - _particle(i).get_velocity(1) * _delta, 1);
@@ -570,7 +568,7 @@ void System ::initialize_properties()
                 _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // This will simplify some operations later
                 _measure.output_names.emplace_back("../OUTPUT/potential_energy.dat");              // This will simplify some operations later
                 index_property++;
-                _vtail = 8. * M_PI * _rho * (1. - 3 * std::pow(_r_cut, 6.)) / (9 * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
+                _vtail = 8. * M_PI * _rho * (1. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
             }
             else if (property == "KINETIC_ENERGY")
             {
@@ -634,6 +632,7 @@ void System ::initialize_properties()
                 input >> _n_bins;
                 _nprop += _n_bins;
                 _bin_size = (_halfside.min()) / (double)_n_bins;
+                _r_gofr_cut_squared = _halfside.min() * _halfside.min();
                 _measure.gofr = true;
                 _measure.idx_gofr = index_property;
                 _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
@@ -684,7 +683,8 @@ void System ::initialize_properties()
                 std::ofstream coutf;
                 coutf.open("../OUTPUT/output.dat", ios::app);
                 coutf << "Reading properties completed!"
-                      << "\n";
+                      << "\n"
+                      << "Number of properties: " << _nprop << "\n";
                 coutf.close();
                 break;
             }
@@ -743,7 +743,7 @@ void System ::write_configuration() const
             coutf << _npart << "\n";
             coutf << "#Comment!"
                   << "\n";
-            for (int i = 0; i < _npart; i++)
+            for (unsigned int i = 0; i < _npart; i++)
             {
                 coutf << "LJ"
                       << "  "
@@ -760,7 +760,7 @@ void System ::write_configuration() const
     else // Ising Metropolis or Ising with Gibbs
     {
         coutf.open("../OUTPUT/CONFIG/config.spin");
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
             coutf << _particle(i).get_spin() << " ";
         coutf.close();
     }
@@ -777,7 +777,7 @@ void System ::write_XYZ(const int nconf) const
     {
         coutf << _npart << "\n";
         coutf << "#Comment!\n";
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             coutf << "LJ"
                   << "  "
@@ -799,7 +799,7 @@ void System::write_velocities() const
     coutf.open("../OUTPUT/CONFIG/velocities.out");
     if (coutf.is_open())
     {
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             coutf << std::setw(16) << _particle(i).get_velocity(0)          // vx
                   << std::setw(16) << _particle(i).get_velocity(1)          // vy
@@ -824,7 +824,7 @@ void System ::read_configuration()
         std::string comment;
         std::string particle;
         double x, y, z;
-        int ncoord;
+        unsigned int ncoord;
         cinf >> ncoord;
         if (ncoord != _npart)
         {
@@ -834,7 +834,7 @@ void System ::read_configuration()
         }
         cinf >> comment;
 
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             cinf >> particle >> x >> y >> z; // units of coordinates in conf.xyz is _side
             _particle(i).set_position(0, this->pbc(_side(0) * x, 0));
@@ -851,7 +851,7 @@ void System ::read_configuration()
     {
         int spin;
         cinf.open("../INPUT/CONFIG/config.spin");
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             cinf >> spin;
             _particle(i).set_spin(spin);
@@ -863,7 +863,7 @@ void System ::read_configuration()
 
 /// @brief Reset block accumulators to zero
 /// @param blk
-void System::block_reset(int blk)
+void System::block_reset(const int blk)
 {
     std::ofstream coutf;
     if (blk > 0)
@@ -891,48 +891,43 @@ void System::measure()
     // VIRIAL  ////////////////////////////////////////////////////////////////////
     if (_measure.penergy or _measure.pressure or _measure.gofr)
     {
-        // std::vector index(_npart - 1, 0); // I want N_part - 1 elements,
-        // std::iota(index.begin(), index.end(), 0);
-
-        // std::cerr << "came here\n";
-
 #pragma omp parallel for ordered reduction(+ : virial, penergy_temp)
-        for (int analyzed = 0; analyzed < _npart - 1; analyzed++)
+        for (unsigned int analyzed = 0; analyzed < _npart - 1; analyzed++)
         {
-            for (int other = analyzed + 1; other < _npart; other++)
+            for (unsigned int other = analyzed + 1; other < _npart; other++)
             {
-                arma::vec3 distance;
-                distance(0) = this->pbc(_particle(analyzed).get_position(0, true) - _particle(other).get_position(0, true), 0);
-                distance(1) = this->pbc(_particle(analyzed).get_position(1, true) - _particle(other).get_position(1, true), 1);
-                distance(2) = this->pbc(_particle(analyzed).get_position(2, true) - _particle(other).get_position(2, true), 2);
-                double dr_squared = arma::dot(distance, distance);
+                // const arma::vec3 distance = {
+                //     this->pbc(_particle(analyzed).get_position(0, true) - _particle(other).get_position(0, true), 0),
+                //     this->pbc(_particle(analyzed).get_position(1, true) - _particle(other).get_position(1, true), 1),
+                //     this->pbc(_particle(analyzed).get_position(2, true) - _particle(other).get_position(2, true), 2)};
+
+                const double dr_squared = particle_distance_squared(_particle(analyzed).get_position(true), _particle(other).get_position(true));
+
+                const bool distance_check = (dr_squared < _r_cut_squared);
 
                 // std::cerr << "came here after distance\n";
                 // GOFR ... TO BE FIXED IN EXERCISE 7
-                if (_measure.gofr)
+                if (_measure.gofr and (dr_squared < _r_gofr_cut_squared))
                 {
                     // Ragionando sulla condizione ho trovato un modo per trovare l'indice ed evitare quindi il ciclo for
-                    int index_to_insert_gofr = static_cast<int>(std::floor(std::sqrt(dr_squared / (_bin_size * _bin_size)))); // Voglio essere sicuro che faccia un troncamento verso il basso
-                    assert(index_to_insert_gofr < _n_bins && "Index out of bounds");
+                    const double _bin_size_squared_inv = 1. / (_bin_size * _bin_size);
+                    const unsigned int index_to_insert_gofr = static_cast<unsigned int>(std::floor(std::sqrt(dr_squared * _bin_size_squared_inv))); // Voglio essere sicuro che faccia un troncamento verso il basso
+
+                    assert((index_to_insert_gofr < _n_bins) && (index_to_insert_gofr >= 0) && "Index out of bounds");
                     _measurement(_measure.idx_gofr + index_to_insert_gofr) += 2;
-                    /*
-                    for (int i = 0; i < _n_bins; i++)
-                    {
-                        if (dr > i* _bin_size && dr < (i+1) * _bin_size)
-                            {
-                            _measurement(_measure.idx_gofr + i) += 2;
-                        }
-                    }
-                    */
                 }
                 // std::cerr << "Came here after gofr\n";
 
                 // POTENTIAL ENERGY
-                penergy_temp += (dr_squared < _r_cut_squared and _measure.penergy) * (std::pow(dr_squared, -6.) - std::pow(dr_squared, -3.)); // POTENTIAL ENERGY
-
+                if (_measure.penergy)
+                {
+                    penergy_temp += distance_check * (std::pow(dr_squared, -6.) - std::pow(dr_squared, -3.)); // POTENTIAL ENERGY
+                }
                 // VIRIAL FOR PRESSURE ... TO BE FIXED IN EXERCISE 4
-
-                virial += (dr_squared < _r_cut_squared and _measure.pressure) * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after
+                if (_measure.pressure)
+                {
+                    virial += distance_check * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after
+                }
             }
         }
     }
@@ -947,7 +942,7 @@ void System::measure()
     // KINETIC ENERGY ////////////////////////////////////////////////////////////
     if (_measure.kenergy)
     {
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             // _particle(i).get_velocity().print("Velocity");
             kenergy_temp += 0.5 * arma::dot(_particle(i).get_velocity(), _particle(i).get_velocity());
@@ -968,7 +963,7 @@ void System::measure()
         case SimType::ISING_MRT2:
         case SimType::GIBBS:
             double s_i, s_j;
-            for (int i = 0; i < _npart; i++)
+            for (unsigned int i = 0; i < _npart; i++)
             {
                 s_i = double(_particle(i).get_spin());
                 s_j = double(_particle(this->pbc(i + 1)).get_spin());
@@ -987,7 +982,7 @@ void System::measure()
     // TO BE FIXED IN EXERCISE 4
     if (_measure.pressure and _measure.temp)
     {
-        double temperature = _measurement(_measure.idx_temp);
+        const double temperature = _measurement(_measure.idx_temp);
         _measurement(_measure.idx_pressure) = _ptail + _rho * temperature + 16. * virial / (_volume); // 48. / 3. = 16...
 #ifndef NDEBUG_TEMPERATURE_PRESSURE
         std::cout << "current virial value" << std::setw(8) << virial << '\n';
@@ -1001,7 +996,7 @@ void System::measure()
     if (_measure.magnet)
     {
 
-        for (int i = 0; i < _npart; i++)
+        for (unsigned int i = 0; i < _npart; i++)
         {
             magnetization += double(_particle(i).get_spin());
         }
@@ -1015,7 +1010,7 @@ void System::measure()
     if (_measure.cv)
     {
         // Saving total energy squared. The Mean calculation will happen in System::averages.
-        double tenergy_squared = (tenergy_temp * _npart) * (tenergy_temp * _npart);
+        const double tenergy_squared = (tenergy_temp * _npart) * (tenergy_temp * _npart);
         _measurement(_measure.idx_cv) = tenergy_squared;
     }
 
@@ -1045,7 +1040,7 @@ void System::averages(const int blk)
     std::ofstream coutf;
     double average, sum_average, sum_ave2;
 
-    _average = _block_av / double(_nsteps);
+    _average = _block_av / static_cast<double>(_nsteps);
     _global_av += _average;
     _global_av2 += _average % _average; // % -> element-wise multiplication
 
@@ -1102,12 +1097,14 @@ void System::averages(const int blk)
         if (blk == get_nbl()) // Last cycle in this moment we write gofr config.
         {
             _measure.stream_gofr().precision(12);
-            for (int bin = 0; bin < _n_bins; bin++)
+            for (unsigned int bin = 0; bin < _n_bins; bin++)
             {
-                average = _average(_measure.idx_gofr + bin);
-                sum_average = _global_av(_measure.idx_gofr + bin);
-                sum_ave2 = _global_av2(_measure.idx_gofr + bin);
-                general_print(_measure.stream_gofr(), blk, average, sum_average, sum_ave2);
+                const double delta_v = 4. / 3. * M_PI * (_bin_size * _bin_size * _bin_size) * (3 * bin * bin + 3. * bin + 1);
+                const double normalization = 1 / (_rho * _npart * delta_v);
+                average = _average(_measure.idx_gofr + bin) * normalization;
+                sum_average = _global_av(_measure.idx_gofr + bin) * normalization;
+                sum_ave2 = _global_av2(_measure.idx_gofr + bin) * normalization * normalization;
+                final_gofr_print(_measure.stream_gofr(), blk, bin * _bin_size, sum_average, sum_ave2);
             }
         }
     }
@@ -1177,6 +1174,18 @@ void System::averages(const int blk)
     coutf.close();
 
     return;
+}
+
+arma::vec3 System::particle_distance(const arma::vec3& first, const arma::vec3& second)
+{
+    const arma::vec3 distance = pbc(first - second);
+    return distance;
+}
+
+double System::particle_distance_squared(const arma::vec3& first, const arma::vec3& second)
+{
+    const arma::vec3 distance = particle_distance(first, second);
+    return arma::dot(distance, distance);
 }
 
 /// @brief Perform calculation of block error as \f$ \frac{<val^2> - <val>^2}{N} \f$.

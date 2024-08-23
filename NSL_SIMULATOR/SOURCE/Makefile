@@ -1,8 +1,8 @@
 CXXFLAGS = -O3 --std=c++17 -pedantic\
 		 -Wall -Wextra -Werror\
-		 -march=native\
+		 -march=native -flto\
 		 -fopenmp\
-		 -ffast-math
+		 -ffast-math # -DNDEBUG
 
 AFLAGS = -larmadillo
 
@@ -20,7 +20,12 @@ else ifeq ($(COMPILER), GNU)
 	AFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP
 	CC = clang++-17
-	CXXFLAGS+= -stdlib=libc++ -fexperimental-library -DNDEBUG
+	CXXFLAGS+= -stdlib=libc++ -fexperimental-library
+endif
+
+ifeq ($(USE_MKL), 1)
+	AFLAGS = -DARMA_DONT_USE_WRAPPER  -L${MKLROOT}/lib -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
+	CXXFLAGS += -I"${MKLROOT}/include"
 endif
 
 all: simulator.exe

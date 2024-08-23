@@ -39,14 +39,14 @@ public:
     arma::vec3 pbc(const arma::vec3& position, const arma::vec3& side) { return position - side % floor(position / side); } // Apply periodic boundary conditions
 
     constexpr int get_spin() const { return _spin; } // Get the spin of the particle
-    void set_spin(int spin) { _spin = spin; }        // Set the spin of the particle
+    void set_spin(const int spin) { _spin = spin; }  // Set the spin of the particle
 
-    double get_position(int dim, bool xnew) const { return (xnew) ? _x(dim) : _xold(dim); } // Get the position of the particle along a specific dimension
-    arma::vec3 get_position(bool xnew) const { return (xnew) ? _x : _xold; }                // Get the position vector of the particle along all dimensions
-    void set_position(int dim, double position) { _x(dim) = position; }                     // Set the position of the particle along a specific dimension
-    void set_position_old(int dim, double position) { _xold(dim) = position; }              // Set the previous position of the particle along a specific dimension
-    void set_position(arma::vec3& position) { _x = position; }                              // Set the position vector of the particle
-    void set_position_old(arma::vec3& position) { _xold = position; }                       // Set the previous position vector of the particle
+    double get_position(const int dim, const bool xnew) const { return (xnew) ? _x(dim) : _xold(dim); } // Get the position of the particle along a specific dimension
+    arma::vec3 get_position(const bool xnew) const { return (xnew) ? _x : _xold; }                      // Get the position vector of the particle along all dimensions
+    void set_position(const int dim, const double position) { _x(dim) = position; }                     // Set the position of the particle along a specific dimension
+    void set_position_old(const int dim, const double position) { _xold(dim) = position; }              // Set the previous position of the particle along a specific dimension
+    void set_position(const arma::vec3& position) { _x = position; }                                    // Set the position vector of the particle
+    void set_position_old(const arma::vec3& position) { _xold = position; }                             // Set the previous position vector of the particle
 
     double get_velocity(const int dim) const { return _v(dim); }                    // Get the velocity of the particle along a specific dimension
     arma::vec3 get_velocity() const { return _v; }                                  // Get the velocity vector of the particle
