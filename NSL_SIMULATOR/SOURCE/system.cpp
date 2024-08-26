@@ -947,7 +947,7 @@ void System::measure()
                 if (_measure.penergy and _measure.pressure)
                 {
                     // virial += distance_check * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after
-                    virial += penergy_temp + 0.5 * dr_squared_inv_cubed;
+                    virial += dr_squared_inv_cubed * dr_squared_inv_cubed - 0.5 * dr_squared_inv_cubed;
                 }
             }
         }
@@ -1001,9 +1001,9 @@ void System::measure()
 
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
-    if (_measure.pressure and _measure.temp)
+    if (_measure.pressure)
     {
-        const double temperature = _measurement(_measure.idx_temp);
+        const double temperature = (_measure.temp) ? _measurement(_measure.idx_temp) : _temp;
         _measurement(_measure.idx_pressure) = _ptail + _rho * temperature + 16. * virial / (_volume); // 48. / 3. = 16...
 #ifndef NDEBUG_TEMPERATURE_PRESSURE
         std::cout << "current virial value" << std::setw(8) << virial << '\n';
