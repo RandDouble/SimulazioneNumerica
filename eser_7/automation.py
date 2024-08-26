@@ -9,19 +9,51 @@ from matplotlib.axes import Axes
 from typing import Any
 
 
-def save_results_starting_equilibrated(phase: Phase):
+def save_results(
+    phase: Phase,
+    file_list: list[str],
+    save_dir: Path,
+    output_dir: Path = Path("NSL_SIMULATOR/OUTPUT"),
+) -> None:
     phase_name = phase.name.lower()
+
+    res_dir = save_dir / phase_name
+    res_dir.mkdir(parents=True, exist_ok=True)
+
+    for file in file_list:
+        res_file = file.removeprefix("CONFIG/").replace(".xyz", f"_{phase_name}.xyz")
+        shutil.copy(output_dir / file, res_dir / res_file)
+        print(f"Copying {file} to {res_dir / file}")
+    print(f"Results for phase {phase_name} saved")
+
+
+def save_results_starting_equilibrated(phase: Phase):
     file_list_to_save = [
         "potential_energy.dat",
         "acceptance.dat",
+        "gofr.dat",
+        "partial_gofr.dat",
     ]
-    res_dir = Path(f"eser_7/from_molecular_dynamics/{phase_name}")
-    res_dir.mkdir(parents=True, exist_ok=True)
+    save_dir = Path("eser_7/from_molecular_dynamics/")
+    save_results(phase, file_list_to_save, save_dir)
 
-    for file in file_list_to_save:
-        shutil.copy(f"NSL_SIMULATOR/OUTPUT/{file}", res_dir / file)
-        print(f"Copying {file} to {res_dir / file}")
-    print(f"Results for phase {phase_name} saved")
+
+def save_results_equilibration(phase: Phase):
+    file_list_to_save = ["potential_energy.dat", "acceptance.dat", "CONFIG/config.xyz"]
+    save_dir = Path("eser_7/from_monte_carlo")
+    save_results(phase, file_list_to_save, save_dir)
+
+
+def save_results_production(phase: Phase):
+    file_list_to_save = [
+        "potential_energy.dat",
+        "acceptance.dat",
+        "gofr.dat",
+        "partial_gofr.dat",
+        "pressure.dat",
+    ]
+    save_dir = Path("eser_7/measurement")
+    save_results(phase, file_list_to_save, save_dir)
 
 
 def load_energy_data(data_dir: Path) -> pd.DataFrame:
@@ -38,6 +70,38 @@ def load_energy_data(data_dir: Path) -> pd.DataFrame:
         **common_config,
     )
     return potential_energy_df
+
+
+def load_pressure_data(data_dir: Path) -> pd.DataFrame:
+    common_config = {
+        "header": None,
+        "sep": "\s+",
+        "skipinitialspace": True,
+        "keep_default_na": False,
+        "skiprows": 1,
+    }
+    pressure_df = pd.read_csv(
+        data_dir / "pressure.dat",
+        names=["block", "actual_p", "p_ave", "error"],
+        **common_config,
+    )
+    return pressure_df
+
+
+def load_gofr_data(data_dir: Path) -> pd.DataFrame:
+    common_config = {
+        "header": None,
+        "sep": "\s+",
+        "skipinitialspace": True,
+        "keep_default_na": False,
+        "skiprows": 1,
+    }
+    gofr_df = pd.read_csv(
+        data_dir / "gofr.dat",
+        names=["distance", "average", "error"],
+        **common_config,
+    )
+    return gofr_df
 
 
 def print_energy(df: pd.DataFrame) -> list[Figure, Any]:

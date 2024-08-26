@@ -20,9 +20,11 @@ def exp_func(x, tau, a):
     return a * np.exp(-x / tau)
 
 
-def fit_exp_autocorrelation(data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def fit_exp_autocorrelation(
+    data: np.ndarray, **kwargs
+) -> tuple[np.ndarray, np.ndarray]:
     x = np.arange(data[data.size // 2 : -1].size)
-    popt, pcov = optimize.curve_fit(exp_func, x, data[data.size // 2 : -1])
+    popt, pcov = optimize.curve_fit(exp_func, x, data[data.size // 2 : -1], **kwargs)
     return popt, pcov
 
 
