@@ -54,6 +54,7 @@ struct measure_flags
     std::stringstream& stream_temp() { return v_streams[idx_temp]; }
     std::stringstream& stream_pressure() { return v_streams[idx_pressure]; }
     std::stringstream& stream_gofr() { return v_streams[idx_gofr]; }
+    std::stringstream& stream_partial_gofr() { return v_streams[idx_gofr + 1]; }
     std::stringstream& stream_magnet() { return v_streams[idx_magnet]; }
     std::stringstream& stream_cv() { return v_streams[idx_cv]; }
     std::stringstream& stream_chi() { return v_streams[idx_chi]; }
@@ -124,9 +125,9 @@ public:                                                               // Functio
     arma::vec3 particle_distance(const arma::vec3& first, const arma::vec3& second);
     double particle_distance_squared(const arma::vec3& first, const arma::vec3& second);
 
-    void Verlet();                                           // Perform Verlet integration step
-    arma::vec3 Force(const unsigned int i);                  // Calculate force on a particle along a dimension
-    double Boltzmann(const unsigned int i, const bool xnew); // Calculate Boltzmann factor for Metropolis acceptance
+    void Verlet();                                                  // Perform Verlet integration step
+    arma::vec3 Force(const unsigned int i);                         // Calculate force on a particle along a dimension
+    double Boltzmann(const unsigned int i /* , const bool xnew */); // Calculate Boltzmann factor for Metropolis acceptance
 
     void general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double sum_ave2);
     void general_print(std::ostream& stream, const double blk, const double ave, const double sum_ave, const double sum_ave2);

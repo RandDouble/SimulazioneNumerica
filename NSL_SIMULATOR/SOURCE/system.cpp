@@ -17,8 +17,6 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #define NDEBUG_TEMPERATURE_PRESSURE
 #define NDEBUG_PRESSURE
 
-using namespace arma;
-
 /// @brief Input stream operator overloading for SimType
 /// @param in Input stream
 /// @param type Output varible
@@ -167,7 +165,7 @@ void System ::move(const int i)
     {
         // To be fixed in EXERCISE 6
         // 1. Choosing spin to change at random
-        const int idx_spin = static_cast<int>(std::floor(_rnd.Rannyu(0., _npart)));
+        const int idx_spin = _rnd.Ranint(0., _npart);
 
         // 2. Compute energy of nearest spins
         const int spin_sum = _particle(pbc(idx_spin - 1)).get_spin() + _particle(pbc(idx_spin + 1)).get_spin();
@@ -224,11 +222,11 @@ void System ::move(const int i)
 /// @return if step was accepted or not.
 bool System::metro(const unsigned int i)
 {
-    double delta_E, acceptance;
+    double delta_E;
     switch (_sim_type)
     {
     case SimType::LENNARD_JONES_MC:
-        delta_E = Boltzmann(i, true) - Boltzmann(i, false);
+        delta_E = Boltzmann(i) /* - Boltzmann(i, false) */;
         break;
 
     case SimType::ISING_MRT2:
@@ -240,28 +238,39 @@ bool System::metro(const unsigned int i)
         exit(-2);
     }
 
-    acceptance = std::exp(-_beta * delta_E);
+    const double acceptance = std::exp(-_beta * delta_E);
     // Usually acceptace is min(1, p(new) / p(old)), with exponential this is not necessary, with this extraction, min function is achieved by _rnd.Rannyu()
     const bool decision = (_rnd.Rannyu() < acceptance); // Metropolis acceptance step
 
     return decision;
 }
 
-double System ::Boltzmann(const unsigned int i, const bool xnew)
+double System ::Boltzmann(const unsigned int i)
 {
-    double energy_i = 0.0;
+    double delta_energy_i = 0.0;
 // Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa sistemare un filino come codice.
-#pragma omp parallel for reduction(+ : energy_i)
+#pragma omp parallel for reduction(+ : delta_energy_i)
     for (unsigned int j = 0; j < _npart; j++)
     {
+        if (i != j)
+        {
+            const double dr_squared_new = particle_distance_squared(_particle(i).get_position(true), _particle(j).get_position(1));
+            const double dr_squared_old = particle_distance_squared(_particle(i).get_position(false), _particle(j).get_position(1));
 
-        const double dr_squared = particle_distance_squared(_particle(i).get_position(xnew), _particle(j).get_position(1));
-        const double energy_par = (j == i) ? 0. : (std::pow(dr_squared, -6.) - std::pow(dr_squared, -3.));
+            const double dr_squared_new_inv_cubed = (dr_squared_new < _r_cut_squared) * std::pow(dr_squared_new, -3.);
+            const double dr_squared_old_inv_cubed = (dr_squared_old < _r_cut_squared) * std::pow(dr_squared_old, -3.);
 
-        energy_i += (dr_squared < _r_cut_squared) * energy_par; // Potential energy calculation (pow(dr, -12.) - pow(dr, -6.))
+            const double energy_new = dr_squared_new_inv_cubed * dr_squared_new_inv_cubed - dr_squared_new_inv_cubed;
+            const double energy_old = dr_squared_old_inv_cubed * dr_squared_old_inv_cubed - dr_squared_old_inv_cubed;
+
+            const double energy_par = energy_new - energy_old;
+
+            delta_energy_i += energy_par; // Potential energy calculation (pow(dr, -12.) - pow(dr, -6.))
+        }
     }
-    energy_i *= 4.0;
-    return energy_i;
+
+    delta_energy_i *= 4.0;
+    return delta_energy_i;
 }
 
 /// @brief Print block information to stream
@@ -633,10 +642,23 @@ void System ::initialize_properties()
                 _nprop += _n_bins;
                 _bin_size = (_halfside.min()) / (double)_n_bins;
                 _r_gofr_cut_squared = _halfside.min() * _halfside.min();
+
+                coutgr.open("../OUTPUT/partial_gofr.dat");
+                coutgr << "BLOCK";
+                for (unsigned int i = 0; i < _n_bins; i++)
+                {
+                    coutgr << std::setw(12) << i * _bin_size;
+                }
+                coutgr << '\n';
+                coutgr.close();
+
                 _measure.gofr = true;
                 _measure.idx_gofr = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // Final GOFR
+                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // Partial GOFR
                 _measure.output_names.emplace_back("../OUTPUT/gofr.dat");
+                _measure.output_names.emplace_back("../OUTPUT/partial_gofr.dat");
+
                 index_property += _n_bins;
             }
             else if (property == "MAGNETIZATION")
@@ -891,16 +913,11 @@ void System::measure()
     // VIRIAL  ////////////////////////////////////////////////////////////////////
     if (_measure.penergy or _measure.pressure or _measure.gofr)
     {
-#pragma omp parallel for ordered reduction(+ : virial, penergy_temp)
+#pragma omp parallel for reduction(+ : virial, penergy_temp)
         for (unsigned int analyzed = 0; analyzed < _npart - 1; analyzed++)
         {
             for (unsigned int other = analyzed + 1; other < _npart; other++)
             {
-                // const arma::vec3 distance = {
-                //     this->pbc(_particle(analyzed).get_position(0, true) - _particle(other).get_position(0, true), 0),
-                //     this->pbc(_particle(analyzed).get_position(1, true) - _particle(other).get_position(1, true), 1),
-                //     this->pbc(_particle(analyzed).get_position(2, true) - _particle(other).get_position(2, true), 2)};
-
                 const double dr_squared = particle_distance_squared(_particle(analyzed).get_position(true), _particle(other).get_position(true));
 
                 const bool distance_check = (dr_squared < _r_cut_squared);
@@ -918,15 +935,19 @@ void System::measure()
                 }
                 // std::cerr << "Came here after gofr\n";
 
+                const double dr_squared_inv_cubed = distance_check * std::pow(dr_squared, -3.);
+
                 // POTENTIAL ENERGY
                 if (_measure.penergy)
                 {
-                    penergy_temp += distance_check * (std::pow(dr_squared, -6.) - std::pow(dr_squared, -3.)); // POTENTIAL ENERGY
+                    penergy_temp += dr_squared_inv_cubed * dr_squared_inv_cubed - dr_squared_inv_cubed; // POTENTIAL ENERGY
+                    // penergy_temp += dr_squared_inv_cubed * dr_squared_inv_cubed - dr_squared_inv_cubed;
                 }
                 // VIRIAL FOR PRESSURE ... TO BE FIXED IN EXERCISE 4
-                if (_measure.pressure)
+                if (_measure.penergy and _measure.pressure)
                 {
-                    virial += distance_check * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after
+                    // virial += distance_check * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after
+                    virial += penergy_temp + 0.5 * dr_squared_inv_cubed;
                 }
             }
         }
@@ -1094,19 +1115,23 @@ void System::averages(const int blk)
     if (_measure.gofr)
     {
 
-        if (blk == get_nbl()) // Last cycle in this moment we write gofr config.
+        _measure.stream_partial_gofr().precision(6);
+        _measure.stream_partial_gofr() << std::setw(5) << blk;
+        for (unsigned int bin = 0; bin < _n_bins; bin++)
         {
-            _measure.stream_gofr().precision(12);
-            for (unsigned int bin = 0; bin < _n_bins; bin++)
+            const double delta_v = 4. / 3. * M_PI * (_bin_size * _bin_size * _bin_size) * (3 * bin * bin + 3. * bin + 1);
+            const double normalization = 1 / (_rho * _npart * delta_v);
+            average = _average(_measure.idx_gofr + bin) * normalization;
+            _measure.stream_partial_gofr() << std::setw(12) << average;
+            if (blk == get_nbl()) // Last cycle in this moment we write gofr config.
             {
-                const double delta_v = 4. / 3. * M_PI * (_bin_size * _bin_size * _bin_size) * (3 * bin * bin + 3. * bin + 1);
-                const double normalization = 1 / (_rho * _npart * delta_v);
-                average = _average(_measure.idx_gofr + bin) * normalization;
+                _measure.stream_gofr().precision(12);
                 sum_average = _global_av(_measure.idx_gofr + bin) * normalization;
                 sum_ave2 = _global_av2(_measure.idx_gofr + bin) * normalization * normalization;
                 final_gofr_print(_measure.stream_gofr(), blk, bin * _bin_size, sum_average, sum_ave2);
             }
         }
+        _measure.stream_partial_gofr() << '\n';
     }
     // MAGNETIZATION /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
