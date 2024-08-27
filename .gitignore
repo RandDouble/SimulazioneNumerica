@@ -18,6 +18,16 @@ NSL_SIMULATOR/INPUT/input.dat
 NSL_SIMULATOR/INPUT/CONFIG/velocities.in
 NSL_SIMULATOR/OUTPUT/seed.out
 
+**/kinetic_energy.dat
+**/output.dat
+**/potential_energy.dat
+**/pressure.dat
+**/temperature.dat
+**/total_energy.dat
+**/acceptance.dat
+**/cauchy_*.dat
+**/exponential_*.dat
+**/uniform_*.dat
 ## Python stuff
 
 # Byte-compiled / optimized / DLL files

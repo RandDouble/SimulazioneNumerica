@@ -1,0 +1,15 @@
+BLOCKS                  20000
+BLOCK_STEPS             1
+PARTICLE_STEPS          1
+THERMALIZATION_STEPS    50
+DELTA                   1.1 # (1.1 orbitale s),(2.5 orbitale p), (5.0 orbitale d)
+FIRST_ROW_INITIALIZER   0
+SECOND_ROW_INITIALIZER  1
+STARTING_POSITION       0.     0.      0.
+OUTPUT_FILE             1
+OUTPUT_VIDEO            0
+INFO_FILE               0
+MEAN_RADIUS_FILE        1
+RESET                   0
+WAVE_FUNCTION           GROUND_STATE
+GENERATOR               UNIFORM
