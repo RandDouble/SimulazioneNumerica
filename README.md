@@ -42,15 +42,21 @@ I titoli dell'esercizio sono dei link ai notebook, invece i link negli elementi 
 
 ### [Esercitazione 6](LSN_Exercises_06.ipynb)
 
-- [ ] [Esercizio 6.1]
+- [ ] [Esercizio 6.1](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
 
 ### [Esercitazione 7](LSN_Exercises_07.ipynb)
+- [x] [Esercizio 7.1](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
+- [x] [Esercizio 7.2](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
+- [x] [Esercizio 7.3](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
+- [ ] [Esercizio 7.4](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
 
-### Esercitazione 8
-### Esercitazione 9
-### Esercitazione 10
+### [Esercitazione 8](LSN_Exercises_08.ipynb)
+
+### [Esercitazione 9](LSN_Exercises_09.ipynb)
+### [Esercitazione 10](LSN_Exercises_10.ipynb)
+### [Esercitazione 11](LSN_Exercises_11.ipynb)
+### [Esercitazione 12](LSN_Exercises_12.ipynb)
 
 ---
 
 Per eventuali problematiche potete contattarmi al seguente indirizzo di posta elettronica: stefano.pilosio@studenti.unimi.it
-

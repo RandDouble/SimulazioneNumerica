@@ -2,7 +2,6 @@ lib
 .vscode
 .ipynb_checkpoints
 **/obj
-*.dat
 *.exe
 *.csv
 *.o
@@ -13,6 +12,11 @@ eser_6/output
 **/__pycache__
 __pycache__/**
 
+NSL_SIMULATOR/INPUT/CONFIG/config.xyz
+NSL_SIMULATOR/INPUT/properties.dat
+NSL_SIMULATOR/INPUT/input.dat
+NSL_SIMULATOR/INPUT/CONFIG/velocities.in
+NSL_SIMULATOR/OUTPUT/seed.out
 
 ## Python stuff
 
