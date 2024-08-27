@@ -56,6 +56,18 @@ def save_results_production(phase: Phase):
     save_results(phase, file_list_to_save, save_dir)
 
 
+def save_results_production_MD(phase: Phase):
+    file_list_to_save = [
+        "potential_energy.dat",
+        "acceptance.dat",
+        "gofr.dat",
+        "partial_gofr.dat",
+        "pressure.dat",
+    ]
+    save_dir = Path("eser_7/measurement_MD")
+    save_results(phase, file_list_to_save, save_dir)
+
+
 def load_energy_data(data_dir: Path) -> pd.DataFrame:
     common_config = {
         "header": None,
