@@ -274,13 +274,13 @@ double System ::Boltzmann(const unsigned int i)
 }
 
 /// @brief Print block information to stream
-void System::general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double sum_ave2)
+void System::general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double error)
 {
     stream.precision(8);
     stream << std::setw(8) << blk
            << std::setw(14) << ave
            << std::setw(14) << sum_ave / double(blk)
-           << std::setw(14) << this->error(sum_ave, sum_ave2, blk) << "\n";
+           << std::setw(14) << error << "\n";
 }
 
 void System::general_print(std::ostream& stream, const double blk, const double ave, const double sum_ave, const double sum_ave2)
@@ -364,9 +364,11 @@ void System ::initialize()
             {
             case SimType::LENNARD_JONES_MD:
                 coutf << "LJ MOLECULAR DYNAMICS (NVE) SIMULATION\n";
+                std::cout << "LJ MOLECULAR DYNAMICS (NVE) SIMULATION\n";
                 break;
             case SimType::LENNARD_JONES_MC:
                 coutf << "LJ MONTE CARLO (NVT) SIMULATION\n";
+                std::cout << "LJ MONTE CARLO (NVT) SIMULATION\n";
                 break;
             case SimType::ISING_MRT2:
                 coutf << "ISING 1D MONTE CARLO (MRT^2) SIMULATION\n"
@@ -374,6 +376,7 @@ void System ::initialize()
                       << std::setw(6) << _J
                       << std::setw(6) << _H
                       << '\n';
+                std::cout << "ISING 1D MONTE CARLO (MRT^2) SIMULATION\n";
                 break;
             case SimType::GIBBS:
                 coutf << "ISING 1D MONTE CARLO (GIBBS) SIMULATION\n"
@@ -381,6 +384,7 @@ void System ::initialize()
                       << std::setw(6) << _J
                       << std::setw(6) << _H
                       << '\n';
+                std::cout << "ISING 1D MONTE CARLO (GIBBS) SIMULATION\n";
                 break;
             }
         }
@@ -415,14 +419,10 @@ void System ::initialize()
             _volume = _npart / _rho;
             // _side.resize(_ndim);
             // _halfside.resize(_ndim);
-            double side = pow(_volume, 1.0 / 3.0);
-            for (int i = 0; i < _ndim; i++)
-            {
-                _side(i) = side;
-            }
-
+            const double side = pow(_volume, 1.0 / 3.0);
+            _side *= side;
             _halfside = 0.5 * _side;
-
+            _r_gofr_cut_squared = side * side * 0.25;
             coutf << "SIDE= ";
             for (int i = 0; i < _ndim; i++)
             {
@@ -459,8 +459,8 @@ void System ::initialize()
         }
         else if (property == "ENDINPUT")
         {
-            coutf << "Reading input completed!"
-                  << "\n";
+            coutf << "Reading input completed!\n";
+            std::cout << "Reading input completed!\n";
             break;
         }
         else
@@ -469,7 +469,7 @@ void System ::initialize()
     input.close();
     read_configuration();
     initialize_velocities();
-    std::cout << "Ended Parsing Properties\n";
+    std::cout << "Ended Parsing System Properties\n";
     coutf << "System initialized!"
           << "\n";
     coutf.close();
@@ -479,6 +479,7 @@ void System ::initialize()
 /// @brief Inizialize velocity using config file `velocities.in`
 void System::initialize_velocities()
 {
+    std::cout << "Starting Velocity Initialization\n";
     if (_restart and _sim_type == SimType::LENNARD_JONES_MD)
     {
         std::ifstream cinf;
@@ -549,6 +550,8 @@ void System::initialize_velocities()
             _particle(i).set_position_old(2, zold);
         }
     }
+
+    std::cout << "Velocity correctly initialized\n";
     return;
 }
 
@@ -558,6 +561,7 @@ void System ::initialize_properties()
     std::string property;
     int index_property = 0;
     _nprop = 0;
+    std::cout << "Starting Parsing Properties\n";
 
     std::ifstream input("../INPUT/properties.dat");
     if (input.is_open())
@@ -577,7 +581,12 @@ void System ::initialize_properties()
                 _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // This will simplify some operations later
                 _measure.output_names.emplace_back("../OUTPUT/potential_energy.dat");              // This will simplify some operations later
                 index_property++;
-                _vtail = 8. * M_PI * _rho * (1. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
+
+                if (_sim_type == SimType::LENNARD_JONES_MC || _sim_type == SimType::LENNARD_JONES_MD)
+                {
+                    _vtail = 8. * M_PI * _rho * (1. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
+                }
+                std::cout << "Calculated Potential Energy Tail Correction :" << std::setw(5) << _vtail << '\n';
             }
             else if (property == "KINETIC_ENERGY")
             {
@@ -630,7 +639,11 @@ void System ::initialize_properties()
                 _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/pressure.dat");
                 index_property++;
-                _ptail = 16 * M_PI * _rho * (2. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
+                if (_sim_type == SimType::LENNARD_JONES_MC || _sim_type == SimType::LENNARD_JONES_MD)
+                {
+                    _ptail = 16 * M_PI * _rho * (2. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
+                }
+                std::cout << "Calculated Pressure Tail Correction :" << std::setw(5) << _ptail << '\n';
             }
             else if (property == "GOFR")
             {
@@ -641,7 +654,6 @@ void System ::initialize_properties()
                 input >> _n_bins;
                 _nprop += _n_bins;
                 _bin_size = (_halfside.min()) / (double)_n_bins;
-                _r_gofr_cut_squared = _halfside.min() * _halfside.min();
 
                 coutgr.open("../OUTPUT/partial_gofr.dat");
                 coutgr << "BLOCK";
@@ -711,12 +723,14 @@ void System ::initialize_properties()
                 break;
             }
             else
-                cerr << "PROBLEM: unknown property" << endl;
+                std::cerr << "PROBLEM: unknown property" << std::endl;
         }
         input.close();
     }
     else
-        cerr << "PROBLEM: Unable to open properties.dat" << endl;
+        std::cerr << "PROBLEM: Unable to open properties.dat" << std::endl;
+
+    std::cout << "Properties Correctly Initialized\n";
 
     // according to the number of properties, resize the vectors _measurement,_average,_block_av,_global_av,_global_av2
     _measurement.resize(_nprop);
@@ -944,7 +958,7 @@ void System::measure()
                     // penergy_temp += dr_squared_inv_cubed * dr_squared_inv_cubed - dr_squared_inv_cubed;
                 }
                 // VIRIAL FOR PRESSURE ... TO BE FIXED IN EXERCISE 4
-                if (_measure.penergy and _measure.pressure)
+                if (_measure.pressure)
                 {
                     // virial += distance_check * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after
                     virial += dr_squared_inv_cubed * dr_squared_inv_cubed - 0.5 * dr_squared_inv_cubed;
@@ -956,7 +970,7 @@ void System::measure()
     // POTENTIAL ENERGY //////////////////////////////////////////////////////////
     if (_measure.penergy)
     {
-        penergy_temp = _vtail + 4.0 * penergy_temp / double(_npart);
+        penergy_temp = 4.0 * penergy_temp / double(_npart);
         _measurement(_measure.idx_penergy) = penergy_temp;
     }
 
@@ -1004,7 +1018,7 @@ void System::measure()
     if (_measure.pressure)
     {
         const double temperature = (_measure.temp) ? _measurement(_measure.idx_temp) : _temp;
-        _measurement(_measure.idx_pressure) = _ptail + _rho * temperature + 16. * virial / (_volume); // 48. / 3. = 16...
+        _measurement(_measure.idx_pressure) = _rho * temperature + 16. * virial / (_volume); // 48. / 3. = 16...
 #ifndef NDEBUG_TEMPERATURE_PRESSURE
         std::cout << "current virial value" << std::setw(8) << virial << '\n';
         std::cout << "Actuale Temperature : " << temperature << "\tPressure : " << _measurement(_measure.idx_pressure) << "\n";
@@ -1059,7 +1073,7 @@ void System::averages(const int blk)
 {
 
     std::ofstream coutf;
-    double average, sum_average, sum_ave2;
+    double average, sum_average, sum_ave2, error;
 
     _average = _block_av / static_cast<double>(_nsteps);
     _global_av += _average;
@@ -1068,10 +1082,11 @@ void System::averages(const int blk)
     // POTENTIAL ENERGY //////////////////////////////////////////////////////////
     if (_measure.penergy)
     {
-        average = _average(_measure.idx_penergy);
+        average = _vtail + _average(_measure.idx_penergy);
         sum_average = _global_av(_measure.idx_penergy);
         sum_ave2 = _global_av2(_measure.idx_penergy);
-        general_print(_measure.stream_penergy(), blk, average, sum_average, sum_ave2);
+        error = this->error(sum_average, sum_ave2, blk);
+        general_print(_measure.stream_penergy(), blk, average + _vtail, sum_average + _vtail, error);
     }
     // KINETIC ENERGY ////////////////////////////////////////////////////////////
     if (_measure.kenergy)
@@ -1079,15 +1094,17 @@ void System::averages(const int blk)
         average = _average(_measure.idx_kenergy);
         sum_average = _global_av(_measure.idx_kenergy);
         sum_ave2 = _global_av2(_measure.idx_kenergy);
+        error = this->error(sum_average, sum_ave2, blk);
         general_print(_measure.stream_kenergy(), blk, average, sum_average, sum_ave2);
     }
     // TOTAL ENERGY //////////////////////////////////////////////////////////////
     if (_measure.tenergy)
     {
-        average = _average(_measure.idx_tenergy);
+        average = _average(_measure.idx_tenergy) + _vtail;
         sum_average = _global_av(_measure.idx_tenergy);
         sum_ave2 = _global_av2(_measure.idx_tenergy);
-        general_print(_measure.stream_tenergy(), blk, average, sum_average, sum_ave2);
+        error = this->error(sum_average, sum_ave2, blk);
+        general_print(_measure.stream_tenergy(), blk, average, sum_average + _vtail, error);
     }
     // TEMPERATURE ///////////////////////////////////////////////////////////////
     if (_measure.temp)
@@ -1095,6 +1112,7 @@ void System::averages(const int blk)
         average = _average(_measure.idx_temp);
         sum_average = _global_av(_measure.idx_temp);
         sum_ave2 = _global_av2(_measure.idx_temp);
+        error = this->error(sum_average, sum_ave2, blk);
         general_print(_measure.stream_temp(), blk, average, sum_average, sum_ave2);
     }
     // PRESSURE //////////////////////////////////////////////////////////////////
@@ -1104,10 +1122,11 @@ void System::averages(const int blk)
 #ifndef NDEBUG_PRESSURE
         std::cout << "Pressione Media Blocco : " << _average(_measure.idx_pressure) << "\n";
 #endif
-        average = _average(_measure.idx_pressure);
+        average = _average(_measure.idx_pressure) + _ptail;
         sum_average = _global_av(_measure.idx_pressure);
         sum_ave2 = _global_av2(_measure.idx_pressure);
-        general_print(_measure.stream_pressure(), blk, average, sum_average, sum_ave2);
+        error = this->error(sum_average, sum_ave2, blk);
+        general_print(_measure.stream_pressure(), blk, average, sum_average + _ptail, error);
     }
 
     // GOFR //////////////////////////////////////////////////////////////////////
@@ -1126,9 +1145,11 @@ void System::averages(const int blk)
             if (blk == get_nbl()) // Last cycle in this moment we write gofr config.
             {
                 _measure.stream_gofr().precision(12);
-                sum_average = _global_av(_measure.idx_gofr + bin) * normalization;
-                sum_ave2 = _global_av2(_measure.idx_gofr + bin) * normalization * normalization;
-                final_gofr_print(_measure.stream_gofr(), blk, bin * _bin_size, sum_average, sum_ave2);
+                sum_average = _global_av(_measure.idx_gofr + bin);
+                sum_ave2 = _global_av2(_measure.idx_gofr + bin);
+                error = this->error(sum_average, sum_ave2, blk);
+
+                final_gofr_print(_measure.stream_gofr(), blk, bin * _bin_size, sum_average * normalization, error * normalization);
             }
         }
         _measure.stream_partial_gofr() << '\n';
@@ -1140,7 +1161,8 @@ void System::averages(const int blk)
         average = _average(_measure.idx_magnet);
         sum_average = _global_av(_measure.idx_magnet);
         sum_ave2 = _global_av2(_measure.idx_magnet);
-        general_print(_measure.stream_magnet(), blk, average, sum_average, sum_ave2);
+        error = this->error(sum_average, sum_ave2, blk);
+        general_print(_measure.stream_magnet(), blk, average, sum_average, error);
     }
 
     // SPECIFIC HEAT /////////////////////////////////////////////////////////////
@@ -1165,7 +1187,8 @@ void System::averages(const int blk)
         // Output
         sum_average = _global_av(_measure.idx_cv);
         sum_ave2 = _global_av2(_measure.idx_cv);
-        general_print(_measure.stream_cv(), blk, average, sum_average, sum_ave2);
+        error = this->error(sum_average, sum_ave2, blk);
+        general_print(_measure.stream_cv(), blk, average, sum_average, error);
     }
 
     // SUSCEPTIBILITY ////////////////////////////////////////////////////////////
@@ -1185,7 +1208,8 @@ void System::averages(const int blk)
 
         sum_average = _global_av(_measure.idx_chi);
         sum_ave2 = _global_av2(_measure.idx_chi);
-        general_print(_measure.stream_chi(), blk, average, sum_average, sum_ave2);
+        error = this->error(sum_average, sum_ave2, blk);
+        general_print(_measure.stream_chi(), blk, average, sum_average, error);
     }
 
     // ACCEPTANCE ////////////////////////////////////////////////////////////////

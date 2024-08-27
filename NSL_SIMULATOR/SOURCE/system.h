@@ -66,39 +66,39 @@ class System
 {
 
 private:
-    const int _ndim{3};         // Dimensionality of the system
-    bool _restart;              // Flag indicating if the simulation is restarted
-    SimType _sim_type;          // Type of simulation (e.g., Lennard-Jones, Ising)
-    unsigned int _npart;        // Number of particles
-    unsigned int _nblocks;      // Number of blocks for block averaging
-    unsigned int _nsteps;       // Number of simulation steps in each block
-    unsigned int _nattempts;    // Number of attempted moves
-    unsigned int _naccepted;    // Number of accepted moves
-    std::size_t _seed_line{0};  // Line to skip in the seed file
-    double _temp, _beta;        // Temperature and inverse temperature
-    double _rho, _volume;       // Density and volume of the system
-    double _r_cut;              // Cutoff radius for pair interactions
-    double _r_cut_squared;      // Square of cutoff radius for pair interactions
-    double _r_gofr_cut_squared; // Square of cutoff radius for radial distribution function
-    double _delta;              // Displacement step for particle moves
-    double _J, _H;              // Parameters for the Ising Hamiltonian
-    arma::vec3 _side;           // Box dimensions
-    arma::vec3 _halfside;       // Half of box dimensions
-    Random _rnd;                // Random number generator
-    field<Particle> _particle;  // Field of particle objects representing the system
-    vec _fx, _fy, _fz;          // Forces on particles along x, y, and z directions
+    const int _ndim{3};                 // Dimensionality of the system
+    bool _restart{false};               // Flag indicating if the simulation is restarted
+    SimType _sim_type;                  // Type of simulation (e.g., Lennard-Jones, Ising)
+    unsigned int _npart;                // Number of particles
+    unsigned int _nblocks;              // Number of blocks for block averaging
+    unsigned int _nsteps;               // Number of simulation steps in each block
+    unsigned int _nattempts{0};         // Number of attempted moves
+    unsigned int _naccepted{0};         // Number of accepted moves
+    std::size_t _seed_line{0};          // Line to skip in the seed file
+    double _temp, _beta;                // Temperature and inverse temperature
+    double _rho, _volume;               // Density and volume of the system
+    double _r_cut;                      // Cutoff radius for pair interactions
+    double _r_cut_squared;              // Square of cutoff radius for pair interactions
+    double _r_gofr_cut_squared;         // Square of cutoff radius for radial distribution function
+    double _delta;                      // Displacement step for particle moves
+    double _J{0.}, _H{0.};              // Parameters for the Ising Hamiltonian
+    arma::vec3 _side{arma::fill::ones}; // Box dimensions
+    arma::vec3 _halfside{_side / 2.};   // Half of box dimensions
+    Random _rnd;                        // Random number generator
+    field<Particle> _particle;          // Field of particle objects representing the system
+    vec _fx, _fy, _fz;                  // Forces on particles along x, y, and z directions
 
     // Properties
-    int _nprop;             // Number of properties being measured
-    measure_flags _measure; // Container for various flags and relative index to measure properties
-    unsigned int _n_bins;   // Number of bins for radial distribution function
-    double _bin_size;       // Size of bins for radial distribution function
-    double _vtail, _ptail;  // Tail corrections for energy and pressure
-    vec _block_av;          // Block averages of properties
-    vec _global_av;         // Global averages of properties
-    vec _global_av2;        // Squared global averages of properties
-    vec _average;           // Average values of properties
-    vec _measurement;       // Measured values of properties
+    unsigned int _nprop{0};        // Number of properties being measured
+    measure_flags _measure;        // Container for various flags and relative index to measure properties
+    unsigned int _n_bins{0};       // Number of bins for radial distribution function
+    double _bin_size{0.};          // Size of bins for radial distribution function
+    double _vtail{0.}, _ptail{0.}; // Tail corrections for energy and pressure
+    vec _block_av;                 // Block averages of properties
+    vec _global_av;                // Global averages of properties
+    vec _global_av2;               // Squared global averages of properties
+    vec _average;                  // Average values of properties
+    vec _measurement;              // Measured values of properties
 
 public:                                                               // Function declarations
     constexpr int get_nbl() const { return _nblocks; }                // Get the number of blocks
