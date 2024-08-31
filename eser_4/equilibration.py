@@ -138,9 +138,23 @@ def print_resulting_data(*dataframes) -> list[Figure, Any]:
 
     for ax, df in zip(axs, dataframes):
         ax.plot(
-            df.iloc[:, 0], df.iloc[:, 1], label="Istantaneous", marker="o", linestyle=""
+            df.iloc[:, 0],
+            df.iloc[:, 1],
+            label="Istantaneous",
+            marker="o",
+            linestyle="",
+            c="C0",
+            zorder=0,
         )
-        ax.errorbar(df.iloc[:, 0], df.iloc[:, 2], yerr=df.iloc[:, 3], label="Average")
+        ax.plot(df.iloc[:, 0], df.iloc[:, 2], c="C1", label="Average", zorder=2)
+        ax.fill_between(
+            df.iloc[:, 0],
+            df.iloc[:, 2] - df.iloc[:, 3],
+            df.iloc[:, 2] + df.iloc[:, 3],
+            alpha=0.6,
+            color="C1",
+            zorder=1,
+        )
         ax.set_xlabel("Block")
         # ax.set_xscale("log")
         ax.set_ylabel(name_conversion[df.columns[1]])
