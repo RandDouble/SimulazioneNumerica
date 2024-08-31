@@ -1,6 +1,6 @@
 #include "utilities.h"
 
-void initializer(Random &rnd, const std::size_t rows_to_skip)
+void initializer(Random& rnd, const std::size_t rows_to_skip)
 {
     int seed[4];
     int p1, p2;
@@ -44,15 +44,16 @@ void initializer(Random &rnd, const std::size_t rows_to_skip)
         std::cerr << "PROBLEM: Unable to open seed.in" << std::endl;
 }
 
-std::ostream &operator<<(std::ostream &os, const values &val)
+std::ostream& operator<<(std::ostream& os, const values& val)
 {
     os << val.value << "," << val.error;
     return os;
 }
 
-double calc_mean(std::vector<double> &v_el)
+double calc_mean(std::vector<double>& v_el)
 {
-    double mean = std::reduce(PARALLEL v_el.begin(), v_el.end(), 0.) / v_el.size();
+    double mean = std::reduce(PARALLEL v_el.begin(), v_el.end(), 0.);
+    mean /= v_el.size();
 
     return mean;
 }
@@ -69,12 +70,18 @@ double calc_mean(std::vector<double>::iterator begin, std::vector<double>::itera
     return mean;
 }
 
-double calc_std(std::vector<double> &v_el)
+double calc_std(std::vector<double>& v_el)
 {
-    double el_squared = std::transform_reduce(PARALLEL v_el.begin(), v_el.end(), v_el.begin(), 0.) / v_el.size(); // Sum of A_i ^ 2, same as \vec{A} \cdot \vec{A}
+    // Sum of A_i ^ 2, same as \vec{A} \cdot \vec{A}
+    double el_squared
+        = std::transform_reduce(PARALLEL v_el.begin(), v_el.end(), v_el.begin(), 0.);
+    el_squared /= v_el.size();
     double mean = calc_mean(v_el);
     double mean_squared = mean * mean;
+    // assert(mean_squared < el_squared && "Mean squared is greater than element
+    // squared\n");
     double variance = el_squared - mean_squared;
+    // assert(variance >= 0 && "Variance is negative\n");
     variance /= (v_el.size() - 1);
 
     return std::sqrt(variance);
@@ -89,8 +96,10 @@ double calc_std(std::vector<double>::iterator begin, std::vector<double>::iterat
         return 0.;
     }
 
-    double el_squared = std::transform_reduce(PARALLEL begin, end + 1, begin, 0.) / (end - begin + 1); // Sum of A_i ^ 2, same as \vec{A} \cdot \vec{A}
-                                                                                                                   // Parallelized version of std::inner_product
+    double el_squared
+        = std::transform_reduce(PARALLEL begin, end + 1, begin, 0.)
+        / (end - begin + 1); // Sum of A_i ^ 2, same as \vec{A} \cdot \vec{A}
+                             // Parallelized version of std::inner_product
 
     double mean = calc_mean(begin, end);
     double mean_squared = mean * mean;
@@ -98,7 +107,9 @@ double calc_std(std::vector<double>::iterator begin, std::vector<double>::iterat
     variance /= (end - begin);
 
 #ifndef NDEBUG
-    std::cout << std::setw(10) << mean_squared << std::setw(10) << el_squared << std::setw(10) << (end - begin) << "\t" << std::setw(10) << variance << "\n";
+    std::cout << std::setw(10) << mean_squared << std::setw(10) << el_squared
+              << std::setw(10) << (end - begin) << "\t" << std::setw(10) << variance
+              << "\n";
 #endif
 
     return std::sqrt(variance);

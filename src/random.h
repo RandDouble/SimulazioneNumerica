@@ -34,6 +34,10 @@ public:
     // destructor
     ~Random() = default;
 
+    // Method to initialize the RNG
+    void Initializer(const std::string& seed_file = "seed.in",
+                     const std::string& prime_file = "Primes",
+                     const std::size_t rows_to_skip = 0ull);
     // Method to set the seed for the RNG
     void SetRandom(int*, int, int);
     // Method to save the seed to a file
@@ -53,8 +57,14 @@ public:
     // Method to generate a random number with a Lorentian distribution
     double Lorenztian(const double x_0, const double gamma);
     // Method Accept Reject for extreme case
-    double AcceptReject(const double a, const double b, const double max, std::function<double(double)>& PDF);
-    double AcceptReject(const double a, const double b, const double max, const std::function<double(double)>& PDF);
+    double AcceptReject(const double a,
+                        const double b,
+                        const double max,
+                        std::function<double(double)>& PDF);
+    double AcceptReject(const double a,
+                        const double b,
+                        const double max,
+                        const std::function<double(double)>& PDF);
     // Method with inverse cumulative
     double ExternalInvCum(std::function<double(double)>& ICDF);
 };

@@ -13,6 +13,49 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 // namespace Sim
 // {
 
+void Random::Initializer(const std::string& seed_file,
+                         const std::string& prime_file,
+                         const std::size_t rows_to_skip)
+{
+    int seed[4];
+    int p1, p2;
+    std::ifstream Primes(prime_file);
+    if (Primes.is_open())
+    {
+        for (std::size_t i = 0; i < rows_to_skip && !Primes.eof(); ++i)
+            Primes.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        if (!Primes.eof())
+            Primes >> p1 >> p2;
+        else
+        {
+            std::cerr << "ERROR: Failed to go to line" << rows_to_skip << " Aborting\n";
+            exit(-1);
+        }
+    }
+    else
+        std::cerr << "PROBLEM: Unable to open Primes" << std::endl;
+
+    Primes.close();
+
+    std::ifstream input(seed_file);
+    std::string property;
+    if (input.is_open())
+    {
+        while (!input.eof())
+        {
+            input >> property;
+            if (property == "RANDOMSEED")
+            {
+                input >> seed[0] >> seed[1] >> seed[2] >> seed[3];
+                SetRandom(seed, p1, p2);
+            }
+        }
+        input.close();
+    }
+    else
+        std::cerr << "PROBLEM: Unable to open seed.in" << std::endl;
+}
+
 void Random ::SaveSeed(const std::string& filename) const
 {
     std::ofstream WriteSeed;
@@ -53,14 +96,18 @@ double Random ::Rannyu(void)
 
 void Random ::SetRandom(int* s, int p1, int p2)
 {
-    l_tot = (static_cast<uint64_t>(s[0]) << (12 * 3)) + (static_cast<uint64_t>(s[1]) << (12 * 2)) + (static_cast<uint64_t>(s[2]) << 12) + static_cast<uint64_t>(s[3]);
+    l_tot = (static_cast<uint64_t>(s[0]) << (12 * 3))
+          + (static_cast<uint64_t>(s[1]) << (12 * 2))
+          + (static_cast<uint64_t>(s[2]) << 12) + static_cast<uint64_t>(s[3]);
 
     uint16_t n1 = 0;
     uint16_t n2 = 0;
     uint16_t n3 = p1;
     uint16_t n4 = p2;
 
-    n_tot = (static_cast<uint64_t>(n1) << (12 * 3)) + (static_cast<uint64_t>(n2) << (12 * 2)) + (static_cast<uint64_t>(n3) << (12 * 1)) + static_cast<uint64_t>(n4);
+    n_tot = (static_cast<uint64_t>(n1) << (12 * 3))
+          + (static_cast<uint64_t>(n2) << (12 * 2))
+          + (static_cast<uint64_t>(n3) << (12 * 1)) + static_cast<uint64_t>(n4);
 }
 double Random::Exponential(const double lambda)
 {
@@ -78,7 +125,10 @@ double Random::Lorenztian(const double x_0, const double gamma)
     return r;
 }
 
-double Random::AcceptReject(const double a, const double b, const double max, std::function<double(double)>& PDF)
+double Random::AcceptReject(const double a,
+                            const double b,
+                            const double max,
+                            std::function<double(double)>& PDF)
 {
     double x = 0, y = 0;
 
@@ -91,7 +141,10 @@ double Random::AcceptReject(const double a, const double b, const double max, st
     return x;
 }
 
-double Random::AcceptReject(const double a, const double b, const double max, const std::function<double(double)>& PDF)
+double Random::AcceptReject(const double a,
+                            const double b,
+                            const double max,
+                            const std::function<double(double)>& PDF)
 {
     double x = 0, y = 0;
 
