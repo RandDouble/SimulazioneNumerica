@@ -2,89 +2,76 @@
 
 double WaveFunction::operator()(const double x) const
 {
-    const double inv_sigma_squared = 1. / (sigma() * sigma());
     const double exponent = -0.5 * (x * x + mu() * mu()) * inv_sigma_squared;
     const double cosh_arg = mu() * x * inv_sigma_squared;
+
+    if (exponent < -708.4) // exp would underflow
+        return 0.;
+
+    assert(!std::isnan(std::exp(exponent)) && "Wavefunction exp is NaN");
+    assert(!std::isinf(std::exp(exponent)) && "Wavefunction exp is Infinite");
+    assert(!std::isnan(std::cosh(cosh_arg)) && "Wavefunction cosh is NaN");
+    assert(!std::isinf(std::cosh(cosh_arg)) && "Wavefunction cosh is Infinite");
+    assert(!std::isnan(2. * std::exp(exponent) * std::cosh(cosh_arg))
+           && "Wavefunction is NaN");
+    assert(!std::isinf(2. * std::exp(exponent) * std::cosh(cosh_arg))
+           && "Wavefunction is Infinite");
 
     return 2. * std::exp(exponent) * std::cosh(cosh_arg);
 }
 
 double WaveFunction::second_der(const double x) const
 {
-    const double inv_sigma_squared = 1. / (sigma() * sigma());
     const double a_2 = (x - mu()) * (x - mu()) * inv_sigma_squared;
     const double b_2 = (x + mu()) * (x + mu()) * inv_sigma_squared;
     const double exp_a = std::exp(-0.5 * a_2);
     const double exp_b = std::exp(-0.5 * b_2);
     double result = exp_a * (a_2 - 1.) + exp_b * (b_2 - 1.);
     result *= inv_sigma_squared;
+
+    assert(!std::isnan(result) && "Second derivative is NaN");
+    assert(!std::isinf(result) && "Second derivative is Infinite");
     return result;
+}
+
+double WaveFunction::kinetic(const double x) const
+{
+    // Obtained from \frac{\Psi''}{\Psi}, the result is -0.5 * \frac{\Psi''}{\Psi}
+
+    const double first_term = (x * x + mu() * mu()) * inv_sigma_squared - 1.;
+    const double tanh_arg = mu() * x * inv_sigma_squared;
+    const double res
+        = inv_sigma_squared * (first_term - 2. * tanh_arg * std::tanh(tanh_arg));
+
+    assert(!std::isnan(res) && "Kinetic energy is NaN");
+    assert(!std::isinf(res) && "Kinetic energy is Infinite");
+
+    return -0.5 * res;
 }
 
 double WaveFunction::PDF(const double x) const
 {
-    const double inv_sigma_squared = 1. / (sigma() * sigma());
     const double exponent = -(x * x + mu() * mu()) * inv_sigma_squared;
     const double cosh_arg = 2. * mu() * x * inv_sigma_squared;
+    if (exponent < -708.4) // Exp would underflow, so cut your losses
+        return 0.;
 
-    return 2. * std::exp(exponent) * (std::cosh(cosh_arg) + 1.);
+    return std::exp(exponent) * (std::cosh(cosh_arg) + 1.);
 }
 
 double WaveFunction::hamiltonian(const double x) const
 {
-    double kinetic = -0.5 * second_der(x);
+    double kin = kinetic(x);
     double pot = potential(x);
-    double psi = operator()(x);
 
-    return kinetic / psi + pot;
+    assert(!std::isnan(kin + pot) && "Energy is NaN");
+    assert(!std::isinf(kin + pot) && "Energy is Infinite");
+
+    return kin + pot;
 }
 
-double potential(const double x)
+double WaveFunction::potential(const double x) const
 {
     const double x_square = x * x;
     return (x_square - 2.5) * x_square;
-}
-
-double wave_function(const double x, const double mu, const double sigma)
-{
-    const double inv_sigma_squared = 1. / (sigma * sigma);
-    const double exponent = -0.5 * (x * x + mu * mu) * inv_sigma_squared;
-    const double cosh_arg = mu * x * inv_sigma_squared;
-
-    return 2. * std::exp(exponent) * std::cosh(cosh_arg);
-}
-
-double wave_function_prob(const double x, const double mu, const double sigma)
-{
-    const double inv_sigma_squared = 1. / (sigma * sigma);
-    const double exponent = -(x * x + mu * mu) * inv_sigma_squared;
-    const double cosh_arg = 2. * mu * x * inv_sigma_squared;
-
-    return 2. * std::exp(exponent) * (std::cosh(cosh_arg) + 1.);
-}
-
-double wave_function_second(const double x, const double mu, const double sigma)
-{
-    const double inv_sigma_squared = 1. / (sigma * sigma);
-    const double a_2 = (x - mu) * (x - mu) * inv_sigma_squared;
-    const double b_2 = (x + mu) * (x + mu) * inv_sigma_squared;
-    const double exp_a = std::exp(-0.5 * a_2);
-    const double exp_b = std::exp(-0.5 * b_2);
-    double result = exp_a * (a_2 - 1.) + exp_b * (b_2 - 1.);
-    result *= inv_sigma_squared;
-    return result;
-}
-
-double hamiltonian(const double x, const double mu, const double sigma)
-{
-    double kinetic = -0.5 * wave_function_second(x, mu, sigma);
-    double pot = potential(x);
-    double psi = wave_function(x, mu, sigma);
-
-    return kinetic / psi + pot;
-}
-
-double boltzman_weight(const double beta, const double energy)
-{
-    return std::exp(-beta * energy);
 }

@@ -5,12 +5,12 @@ PROGNAME= main_8_2.exe
 MAIN= main_8_2.cpp
 SRC_FILES = random.cpp utilities.cpp
 HEADER_FILES = metropolis.h
-LOCAL_SRC_FILE = ../local_src/wave_function.cpp
+LOCAL_SRC_FILE = ../local_src/wave_function.cpp ../local_src/simulated_annealing.cpp
 
 # Compiler and compiler flags
 # Default compiler is Clang++-17 with libc++ as standard library implementation
 INCFLAGS= -I../../src -I../local_src
-CXXFLAGS= $(INCFLAGS) -g -Wall -Wextra -Werror -O2 -std=c++17 -DUSE_PARALLEL -march=native
+CXXFLAGS= $(INCFLAGS) -std=c++17 -Wall -Wextra -Werror -std=c++17 -O3 -DUSE_PARALLEL -DNDEBUG -ffast-math -march=native
 # O2 because it can show more warning due to flow variable analisys
 # c++17 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 
@@ -59,6 +59,9 @@ $(OBJ_DIR)/%.o: %.cpp %.h
 $(OBJ_DIR)/%.o: ../local_src/%.cpp ../local_src/%.h
 	mkdir -p $(dir $@)
 	$(CXX) -c -o $@ $(CXXFLAGS) $<
+
+test.exe: test_rng.cpp $(OBJ) $(HEAD)
+	$(CXX) -o test.exe $(CXXFLAGS) test_rng.cpp $(OBJ) $(LDFLAGS)
 
 
 .PHONY: clean
