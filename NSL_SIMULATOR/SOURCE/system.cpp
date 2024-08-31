@@ -75,24 +75,40 @@ void System::Verlet()
     }
 
     // Change in position and velocity for each particle
-    // Do not ask why, but this section when launched with openmp causes  to get only nans...
-    // suspect of various entities reading from memory at the same time
-    // #pragma omp barrier
+    // Do not ask why, but this section when launched with openmp causes  to get only
+    // nans... suspect of various entities reading from memory at the same time #pragma
+    // omp barrier
 
 #pragma omp parallel for
     for (unsigned int i = 0; i < _npart; i++)
     { // Verlet integration scheme
         const arma::vec3 new_pos = {
-            this->pbc(2.0 * _particle(i).get_position(0, true) - _particle(i).get_position(0, false) + _fx(i) * pow(_delta, 2), 0),
-            this->pbc(2.0 * _particle(i).get_position(1, true) - _particle(i).get_position(1, false) + _fy(i) * pow(_delta, 2), 1),
-            this->pbc(2.0 * _particle(i).get_position(2, true) - _particle(i).get_position(2, false) + _fz(i) * pow(_delta, 2), 2)};
+            this->pbc(2.0 * _particle(i).get_position(0, true)
+                          - _particle(i).get_position(0, false) + _fx(i) * pow(_delta, 2),
+                      0),
+            this->pbc(2.0 * _particle(i).get_position(1, true)
+                          - _particle(i).get_position(1, false) + _fy(i) * pow(_delta, 2),
+                      1),
+            this->pbc(2.0 * _particle(i).get_position(2, true)
+                          - _particle(i).get_position(2, false) + _fz(i) * pow(_delta, 2),
+                      2)};
 
-        _particle(i).set_velocity(0, this->pbc(new_pos(0) - _particle(i).get_position(0, false), 0) / (2.0 * _delta));
-        _particle(i).set_velocity(1, this->pbc(new_pos(1) - _particle(i).get_position(1, false), 1) / (2.0 * _delta));
-        _particle(i).set_velocity(2, this->pbc(new_pos(2) - _particle(i).get_position(2, false), 2) / (2.0 * _delta));
+        _particle(i).set_velocity(
+            0,
+            this->pbc(new_pos(0) - _particle(i).get_position(0, false), 0)
+                / (2.0 * _delta));
+        _particle(i).set_velocity(
+            1,
+            this->pbc(new_pos(1) - _particle(i).get_position(1, false), 1)
+                / (2.0 * _delta));
+        _particle(i).set_velocity(
+            2,
+            this->pbc(new_pos(2) - _particle(i).get_position(2, false), 2)
+                / (2.0 * _delta));
 
-        // (pbc(new_pos - _particle(i).get_position(false)) / (2.0 * _delta)).print("New Velocity Computed");
-        // _particle(i).set_velocity(pbc(new_pos - _particle(i).get_position(false)) / (2.0 * _delta));
+        // (pbc(new_pos - _particle(i).get_position(false)) / (2.0 * _delta)).print("New
+        // Velocity Computed"); _particle(i).set_velocity(pbc(new_pos -
+        // _particle(i).get_position(false)) / (2.0 * _delta));
 
         _particle(i).accept_move(); // xold = xnew
         _particle(i).set_position(new_pos);
@@ -120,20 +136,28 @@ arma::vec3 System::Force(const unsigned int i)
 #endif
         if (i != j)
         {
-            const arma::vec3 distance = particle_distance(_particle(i).get_position(true), _particle(j).get_position(true));
+            const arma::vec3 distance = particle_distance(
+                _particle(i).get_position(true), _particle(j).get_position(true));
             const double dr_square = arma::dot(distance, distance);
 
-            f += distance * (dr_square < _r_cut_squared) * (pow(dr_square, -7.) - 0.5 * pow(dr_square, -4.)); // Moved * 48. after for loop
-                                                                                                              // f += distance(dim) * (48.0 / pow(dr, 14) - 24.0 / pow(dr, 8));
+            f += distance * (dr_square < _r_cut_squared)
+               * (pow(dr_square, -7.)
+                  - 0.5 * pow(dr_square, -4.)); // Moved * 48. after for loop
+                                                // f += distance(dim) * (48.0 / pow(dr,
+                                                // 14) - 24.0 / pow(dr, 8));
 
 #ifndef NDEBUG_FORCE
-            // std::cout << "Computed Force in " << dim << " direction : " << f << " on particle : " << i << '\n';
+            // std::cout << "Computed Force in " << dim << " direction : " << f << " on
+            // particle : " << i << '\n';
             if (std::isnan(f) and !proced)
             {
                 std::cout << "current distance (dir : " << dim << " ):\n"
-                          << distance << "current dr : " << dr << "\tcurrent particles (i,j) : " << i << '\t' << j << '\n'
-                          << "Calculation result : pow(dr, -16.) : " << std::pow(dr, -16.) << "\t0.5 * pow(dr, -8.) : " << 0.5 * pow(dr, -8.) << '\n'
-                          << "Increment Computed :" << distance(dim) * (pow(dr, -16.) - 0.5 * pow(dr, -8.)) << '\n'
+                          << distance << "current dr : " << dr
+                          << "\tcurrent particles (i,j) : " << i << '\t' << j << '\n'
+                          << "Calculation result : pow(dr, -16.) : " << std::pow(dr, -16.)
+                          << "\t0.5 * pow(dr, -8.) : " << 0.5 * pow(dr, -8.) << '\n'
+                          << "Increment Computed :"
+                          << distance(dim) * (pow(dr, -16.) - 0.5 * pow(dr, -8.)) << '\n'
                           << "Actual Force : " << f << "\tin direction " << dim << '\n';
                 std::cin.get();
 
@@ -161,17 +185,18 @@ void System ::move(const int i)
 {
     switch (_sim_type)
     {
-    case SimType::GIBBS:
-    {
+    case SimType::GIBBS: {
         // To be fixed in EXERCISE 6
         // 1. Choosing spin to change at random
         const int idx_spin = _rnd.Ranint(0., _npart);
 
         // 2. Compute energy of nearest spins
-        const int spin_sum = _particle(pbc(idx_spin - 1)).get_spin() + _particle(pbc(idx_spin + 1)).get_spin();
+        const int spin_sum = _particle(pbc(idx_spin - 1)).get_spin()
+                           + _particle(pbc(idx_spin + 1)).get_spin();
         const double delta_E = _J * spin_sum + _H;
         // 3. Compute Change
-        const int new_spin = (_rnd.Rannyu() < (1. / (1. + std::exp(-2. * _beta * delta_E)))) ? 1 : -1;
+        const int new_spin
+            = (_rnd.Rannyu() < (1. / (1. + std::exp(-2. * _beta * delta_E)))) ? 1 : -1;
 
         _particle(idx_spin).set_spin(new_spin);
 
@@ -180,10 +205,11 @@ void System ::move(const int i)
     }
     break;
 
-    case SimType::LENNARD_JONES_MC:
-    {                                                                                          // M(RT)^2 LJ system
-        arma::vec3 shift = {_rnd.Rannyu(-1., 1.), _rnd.Rannyu(-1., 1.), _rnd.Rannyu(-1., 1.)}; // Will store the proposed translation
-        shift *= _delta;                                                                       // Scale the shift to the proper size
+    case SimType::LENNARD_JONES_MC: { // M(RT)^2 LJ system
+        arma::vec3 shift = {_rnd.Rannyu(-1., 1.),
+                            _rnd.Rannyu(-1., 1.),
+                            _rnd.Rannyu(-1., 1.)}; // Will store the proposed translation
+        shift *= _delta;                           // Scale the shift to the proper size
 
         _particle(i).translate(shift, _side); // Call the function Particle::translate
         if (this->metro(i))
@@ -192,17 +218,17 @@ void System ::move(const int i)
             _naccepted++;
         }
         else
-            _particle(i).move_back(); // If translation is rejected, restore the old configuration
+            _particle(i)
+                .move_back(); // If translation is rejected, restore the old configuration
     }
     break;
     case SimType::LENNARD_JONES_MD:
         std::cerr << "You shouldn't be here\n";
         exit(-2);
         break;
-    case SimType::ISING_MRT2:
-    { // Ising 1D
+    case SimType::ISING_MRT2: { // Ising 1D
         if (metro(i))
-        {                        // Metropolis acceptance evaluation for a spin flip involving spin i
+        { // Metropolis acceptance evaluation for a spin flip involving spin i
             _particle(i).flip(); // If accepted, the spin i is flipped
             _naccepted++;
         }
@@ -230,8 +256,11 @@ bool System::metro(const unsigned int i)
         break;
 
     case SimType::ISING_MRT2:
-        delta_E = 2.0 * _particle(i).get_spin() *
-                  (_J * (_particle(this->pbc(i - 1)).get_spin() + _particle(this->pbc(i + 1)).get_spin()) + _H);
+        delta_E = 2.0 * _particle(i).get_spin()
+                * (_J
+                       * (_particle(this->pbc(i - 1)).get_spin()
+                          + _particle(this->pbc(i + 1)).get_spin())
+                   + _H);
         break;
     default:
         std::cerr << "Came in point of metro where you shouldn't be, Aborting\n";
@@ -239,7 +268,8 @@ bool System::metro(const unsigned int i)
     }
 
     const double acceptance = std::exp(-_beta * delta_E);
-    // Usually acceptace is min(1, p(new) / p(old)), with exponential this is not necessary, with this extraction, min function is achieved by _rnd.Rannyu()
+    // Usually acceptace is min(1, p(new) / p(old)), with exponential this is not
+    // necessary, with this extraction, min function is achieved by _rnd.Rannyu()
     const bool decision = (_rnd.Rannyu() < acceptance); // Metropolis acceptance step
 
     return decision;
@@ -248,24 +278,32 @@ bool System::metro(const unsigned int i)
 double System ::Boltzmann(const unsigned int i)
 {
     double delta_energy_i = 0.0;
-// Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa sistemare un filino come codice.
+// Questo è un buon candidato per la parallizzazione... Inoltre credo che si possa
+// sistemare un filino come codice.
 #pragma omp parallel for reduction(+ : delta_energy_i)
     for (unsigned int j = 0; j < _npart; j++)
     {
         if (i != j)
         {
-            const double dr_squared_new = particle_distance_squared(_particle(i).get_position(true), _particle(j).get_position(1));
-            const double dr_squared_old = particle_distance_squared(_particle(i).get_position(false), _particle(j).get_position(1));
+            const double dr_squared_new = particle_distance_squared(
+                _particle(i).get_position(true), _particle(j).get_position(1));
+            const double dr_squared_old = particle_distance_squared(
+                _particle(i).get_position(false), _particle(j).get_position(1));
 
-            const double dr_squared_new_inv_cubed = (dr_squared_new < _r_cut_squared) * std::pow(dr_squared_new, -3.);
-            const double dr_squared_old_inv_cubed = (dr_squared_old < _r_cut_squared) * std::pow(dr_squared_old, -3.);
+            const double dr_squared_new_inv_cubed
+                = (dr_squared_new < _r_cut_squared) * std::pow(dr_squared_new, -3.);
+            const double dr_squared_old_inv_cubed
+                = (dr_squared_old < _r_cut_squared) * std::pow(dr_squared_old, -3.);
 
-            const double energy_new = dr_squared_new_inv_cubed * dr_squared_new_inv_cubed - dr_squared_new_inv_cubed;
-            const double energy_old = dr_squared_old_inv_cubed * dr_squared_old_inv_cubed - dr_squared_old_inv_cubed;
+            const double energy_new = dr_squared_new_inv_cubed * dr_squared_new_inv_cubed
+                                    - dr_squared_new_inv_cubed;
+            const double energy_old = dr_squared_old_inv_cubed * dr_squared_old_inv_cubed
+                                    - dr_squared_old_inv_cubed;
 
             const double energy_par = energy_new - energy_old;
 
-            delta_energy_i += energy_par; // Potential energy calculation (pow(dr, -12.) - pow(dr, -6.))
+            delta_energy_i += energy_par; // Potential energy calculation (pow(dr, -12.) -
+                                          // pow(dr, -6.))
         }
     }
 
@@ -274,30 +312,37 @@ double System ::Boltzmann(const unsigned int i)
 }
 
 /// @brief Print block information to stream
-void System::general_print(std::ostream& stream, const int blk, const double ave, const double sum_ave, const double error)
+void System::general_print(std::ostream& stream,
+                           const int blk,
+                           const double ave,
+                           const double sum_ave,
+                           const double error)
 {
     stream.precision(8);
-    stream << std::setw(8) << blk
-           << std::setw(14) << ave
-           << std::setw(14) << sum_ave / double(blk)
+    stream << std::setw(8) << blk << std::setw(14) << ave << std::setw(14) << sum_ave
            << std::setw(14) << error << "\n";
 }
 
-void System::general_print(std::ostream& stream, const double blk, const double ave, const double sum_ave, const double sum_ave2)
+void System::general_print(std::ostream& stream,
+                           const double blk,
+                           const double ave,
+                           const double sum_ave,
+                           const double sum_ave2)
 {
     stream.precision(8);
-    stream << std::setw(8) << blk
-           << std::setw(14) << ave
-           << std::setw(14) << sum_ave / double(blk)
+    stream << std::setw(8) << blk << std::setw(14) << ave << std::setw(14) << sum_ave
            << std::setw(14) << this->error(sum_ave, sum_ave2, blk) << "\n";
 }
 
-void System::final_gofr_print(std::ostream& stream, const unsigned int blk, const double bin, const double sum_ave, const double sum_ave2)
+void System::final_gofr_print(std::ostream& stream,
+                              const unsigned int blk,
+                              const double bin,
+                              const double sum_ave,
+                              const double sum_ave2)
 {
     stream.precision(8);
-    stream << std::setw(8) << bin
-           << std::setw(14) << sum_ave / double(blk)
-           << std::setw(14) << this->error(sum_ave, sum_ave2, blk) << "\n";
+    stream << std::setw(8) << bin << std::setw(14) << sum_ave << std::setw(14)
+           << this->error(sum_ave, sum_ave2, blk) << "\n";
 }
 
 /// @brief Enforce periodic boundary conditions
@@ -311,10 +356,9 @@ double System::pbc(const double position, const unsigned int i)
 
 arma::vec3 System::pbc(const arma::vec3& position)
 {
-    const arma::vec3 res = {
-        position(0) - _side(0) * std::rint(position(0) / _side(0)),
-        position(1) - _side(1) * std::rint(position(1) / _side(1)),
-        position(2) - _side(2) * std::rint(position(2) / _side(2))};
+    const arma::vec3 res = {position(0) - _side(0) * std::rint(position(0) / _side(0)),
+                            position(1) - _side(1) * std::rint(position(1) / _side(1)),
+                            position(2) - _side(2) * std::rint(position(2) / _side(2))};
     return res;
 }
 
@@ -330,14 +374,18 @@ int System ::pbc(unsigned int i)
     return i;
 }
 
-/// @brief Initialize the System object according to the content of the input files in the ../INPUT/ directory
+/// @brief Initialize the System object according to the content of the input files in the
+/// ../INPUT/ directory
 void System ::initialize()
 {
 
-    _rnd.Initializer("../INPUT/seed.in", "../INPUT/Primes", _seed_line); // Initialize the random number generator
+    _rnd.Initializer("../INPUT/seed.in",
+                     "../INPUT/Primes",
+                     _seed_line); // Initialize the random number generator
     std::cout << "Random number generator initialized\n";
 
-    std::ofstream couta("../OUTPUT/acceptance.dat"); // Set the heading line in file ../OUTPUT/acceptance.dat
+    std::ofstream couta("../OUTPUT/acceptance.dat"); // Set the heading line in file
+                                                     // ../OUTPUT/acceptance.dat
     couta << "#   N_BLOCK:  ACCEPTANCE:"
           << "\n";
     couta.close();
@@ -372,18 +420,15 @@ void System ::initialize()
                 break;
             case SimType::ISING_MRT2:
                 coutf << "ISING 1D MONTE CARLO (MRT^2) SIMULATION\n"
-                      << "SIM_TYPE=" << std::setw(4) << static_cast<int>(SimType::ISING_MRT2)
-                      << std::setw(6) << _J
-                      << std::setw(6) << _H
-                      << '\n';
+                      << "SIM_TYPE=" << std::setw(4)
+                      << static_cast<int>(SimType::ISING_MRT2) << std::setw(6) << _J
+                      << std::setw(6) << _H << '\n';
                 std::cout << "ISING 1D MONTE CARLO (MRT^2) SIMULATION\n";
                 break;
             case SimType::GIBBS:
                 coutf << "ISING 1D MONTE CARLO (GIBBS) SIMULATION\n"
                       << "SIM_TYPE=" << std::setw(4) << static_cast<int>(SimType::GIBBS)
-                      << std::setw(6) << _J
-                      << std::setw(6) << _H
-                      << '\n';
+                      << std::setw(6) << _J << std::setw(6) << _H << '\n';
                 std::cout << "ISING 1D MONTE CARLO (GIBBS) SIMULATION\n";
                 break;
             }
@@ -542,9 +587,15 @@ void System::initialize_velocities()
     {
         for (unsigned int i = 0; i < _npart; i++)
         {
-            double xold = this->pbc(_particle(i).get_position(0, true) - _particle(i).get_velocity(0) * _delta, 0);
-            double yold = this->pbc(_particle(i).get_position(1, true) - _particle(i).get_velocity(1) * _delta, 1);
-            double zold = this->pbc(_particle(i).get_position(2, true) - _particle(i).get_velocity(2) * _delta, 2);
+            double xold = this->pbc(_particle(i).get_position(0, true)
+                                        - _particle(i).get_velocity(0) * _delta,
+                                    0);
+            double yold = this->pbc(_particle(i).get_position(1, true)
+                                        - _particle(i).get_velocity(1) * _delta,
+                                    1);
+            double zold = this->pbc(_particle(i).get_position(2, true)
+                                        - _particle(i).get_velocity(2) * _delta,
+                                    2);
             _particle(i).set_position_old(0, xold);
             _particle(i).set_position_old(1, yold);
             _particle(i).set_position_old(2, zold);
@@ -555,7 +606,8 @@ void System::initialize_velocities()
     return;
 }
 
-/// @brief Initialize data members used for measurement of properties using config written in `properties.dat`. Also prepares files for output.
+/// @brief Initialize data members used for measurement of properties using config written
+/// in `properties.dat`. Also prepares files for output.
 void System ::initialize_properties()
 {
     std::string property;
@@ -578,15 +630,22 @@ void System ::initialize_properties()
                 _nprop++;
                 _measure.penergy = true;
                 _measure.idx_penergy = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // This will simplify some operations later
-                _measure.output_names.emplace_back("../OUTPUT/potential_energy.dat");              // This will simplify some operations later
+                _measure.v_streams.emplace_back(std::stringstream(
+                    std::ios::out
+                    | std::ios::app)); // This will simplify some operations later
+                _measure.output_names.emplace_back(
+                    "../OUTPUT/potential_energy.dat"); // This will simplify some
+                                                       // operations later
                 index_property++;
 
-                if (_sim_type == SimType::LENNARD_JONES_MC || _sim_type == SimType::LENNARD_JONES_MD)
+                if (_sim_type == SimType::LENNARD_JONES_MC
+                    || _sim_type == SimType::LENNARD_JONES_MD)
                 {
-                    _vtail = 8. * M_PI * _rho * (1. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
+                    _vtail = 8. * M_PI * _rho * (1. - 3. * std::pow(_r_cut, 6.))
+                           / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
                 }
-                std::cout << "Calculated Potential Energy Tail Correction :" << std::setw(5) << _vtail << '\n';
+                std::cout << "Calculated Potential Energy Tail Correction :"
+                          << std::setw(5) << _vtail << '\n';
             }
             else if (property == "KINETIC_ENERGY")
             {
@@ -597,8 +656,12 @@ void System ::initialize_properties()
                 _nprop++;
                 _measure.kenergy = true;
                 _measure.idx_kenergy = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // This will simplify some operations later
-                _measure.output_names.emplace_back("../OUTPUT/kinetic_energy.dat");                // This will simplify some operations later
+                _measure.v_streams.emplace_back(std::stringstream(
+                    std::ios::out
+                    | std::ios::app)); // This will simplify some operations later
+                _measure.output_names.emplace_back(
+                    "../OUTPUT/kinetic_energy.dat"); // This will simplify some operations
+                                                     // later
                 index_property++;
             }
             else if (property == "TOTAL_ENERGY")
@@ -610,7 +673,8 @@ void System ::initialize_properties()
                 _nprop++;
                 _measure.tenergy = true;
                 _measure.idx_tenergy = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
+                _measure.v_streams.emplace_back(
+                    std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/total_energy.dat");
                 index_property++;
             }
@@ -623,7 +687,8 @@ void System ::initialize_properties()
                 _nprop++;
                 _measure.temp = true;
                 _measure.idx_temp = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
+                _measure.v_streams.emplace_back(
+                    std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/temperature.dat");
                 index_property++;
             }
@@ -636,14 +701,18 @@ void System ::initialize_properties()
                 _nprop++;
                 _measure.pressure = true;
                 _measure.idx_pressure = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
+                _measure.v_streams.emplace_back(
+                    std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/pressure.dat");
                 index_property++;
-                if (_sim_type == SimType::LENNARD_JONES_MC || _sim_type == SimType::LENNARD_JONES_MD)
+                if (_sim_type == SimType::LENNARD_JONES_MC
+                    || _sim_type == SimType::LENNARD_JONES_MD)
                 {
-                    _ptail = 16 * M_PI * _rho * (2. - 3. * std::pow(_r_cut, 6.)) / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
+                    _ptail = 16 * M_PI * _rho * (2. - 3. * std::pow(_r_cut, 6.))
+                           / (9. * std::pow(_r_cut, 9.)); // TO BE FIXED IN EXERCISE 7
                 }
-                std::cout << "Calculated Pressure Tail Correction :" << std::setw(5) << _ptail << '\n';
+                std::cout << "Calculated Pressure Tail Correction :" << std::setw(5)
+                          << _ptail << '\n';
             }
             else if (property == "GOFR")
             {
@@ -666,8 +735,10 @@ void System ::initialize_properties()
 
                 _measure.gofr = true;
                 _measure.idx_gofr = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // Final GOFR
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app)); // Partial GOFR
+                _measure.v_streams.emplace_back(
+                    std::stringstream(std::ios::out | std::ios::app)); // Final GOFR
+                _measure.v_streams.emplace_back(
+                    std::stringstream(std::ios::out | std::ios::app)); // Partial GOFR
                 _measure.output_names.emplace_back("../OUTPUT/gofr.dat");
                 _measure.output_names.emplace_back("../OUTPUT/partial_gofr.dat");
 
@@ -682,7 +753,8 @@ void System ::initialize_properties()
                 _nprop++;
                 _measure.magnet = true;
                 _measure.idx_magnet = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
+                _measure.v_streams.emplace_back(
+                    std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/magnetization.dat");
                 index_property++;
             }
@@ -695,7 +767,8 @@ void System ::initialize_properties()
                 _nprop++;
                 _measure.cv = true;
                 _measure.idx_cv = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
+                _measure.v_streams.emplace_back(
+                    std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/specific_heat.dat");
                 index_property++;
             }
@@ -708,7 +781,8 @@ void System ::initialize_properties()
                 _nprop++;
                 _measure.chi = true;
                 _measure.idx_chi = index_property;
-                _measure.v_streams.emplace_back(std::stringstream(std::ios::out | std::ios::app));
+                _measure.v_streams.emplace_back(
+                    std::stringstream(std::ios::out | std::ios::app));
                 _measure.output_names.emplace_back("../OUTPUT/susceptibility.dat");
                 index_property++;
             }
@@ -732,7 +806,8 @@ void System ::initialize_properties()
 
     std::cout << "Properties Correctly Initialized\n";
 
-    // according to the number of properties, resize the vectors _measurement,_average,_block_av,_global_av,_global_av2
+    // according to the number of properties, resize the vectors
+    // _measurement,_average,_block_av,_global_av,_global_av2
     _measurement.resize(_nprop);
     _average.resize(_nprop);
     _block_av.resize(_nprop);
@@ -746,14 +821,16 @@ void System ::initialize_properties()
     return;
 }
 
-/// @brief Write final config of the system to file, write all the measure requested to files, writes seed used to file.
+/// @brief Write final config of the system to file, write all the measure requested to
+/// files, writes seed used to file.
 void System ::finalize()
 {
     this->write_configuration(); // write to file final config of the system
     _rnd.SaveSeed("../OUTPUT/seed.out");
     std::ofstream coutf;
 
-    for (size_t i = 0; i < _measure.v_streams.size(); i++) // Write to files each measure result
+    for (size_t i = 0; i < _measure.v_streams.size();
+         i++) // Write to files each measure result
     {
         coutf.open(_measure.output_names[i], std::ios::app);
         coutf << _measure.v_streams[i].str();
@@ -767,7 +844,8 @@ void System ::finalize()
     return;
 }
 
-/// @brief Write current configuration as file in directory ../OUTPUT/CONFIG/, if LJ simulation or Montecarlo saves as .xyz file, else if is Ising writes a .spin file
+/// @brief Write current configuration as file in directory ../OUTPUT/CONFIG/, if LJ
+/// simulation or Montecarlo saves as .xyz file, else if is Ising writes a .spin file
 void System ::write_configuration() const
 {
     std::ofstream coutf;
@@ -782,10 +860,12 @@ void System ::write_configuration() const
             for (unsigned int i = 0; i < _npart; i++)
             {
                 coutf << "LJ"
-                      << "  "
-                      << std::setw(16) << _particle(i).get_position(0, true) / _side(0)          // x
-                      << std::setw(16) << _particle(i).get_position(1, true) / _side(1)          // y
-                      << std::setw(16) << _particle(i).get_position(2, true) / _side(2) << "\n"; // z
+                      << "  " << std::setw(16)
+                      << _particle(i).get_position(0, true) / _side(0) // x
+                      << std::setw(16)
+                      << _particle(i).get_position(1, true) / _side(1) // y
+                      << std::setw(16) << _particle(i).get_position(2, true) / _side(2)
+                      << "\n"; // z
             }
         }
         else
@@ -816,8 +896,7 @@ void System ::write_XYZ(const int nconf) const
         for (unsigned int i = 0; i < _npart; i++)
         {
             coutf << "LJ"
-                  << "  "
-                  << std::setw(16) << _particle(i).get_position(0, true)          // x
+                  << "  " << std::setw(16) << _particle(i).get_position(0, true)  // x
                   << std::setw(16) << _particle(i).get_position(1, true)          // y
                   << std::setw(16) << _particle(i).get_position(2, true) << "\n"; // z
         }
@@ -864,7 +943,8 @@ void System ::read_configuration()
         cinf >> ncoord;
         if (ncoord != _npart)
         {
-            cerr << "PROBLEM: conflicting number of coordinates in input.dat & config.xyz not match!"
+            cerr << "PROBLEM: conflicting number of coordinates in input.dat & "
+                    "config.xyz not match!"
                  << "\n";
             exit(EXIT_FAILURE);
         }
@@ -932,7 +1012,9 @@ void System::measure()
         {
             for (unsigned int other = analyzed + 1; other < _npart; other++)
             {
-                const double dr_squared = particle_distance_squared(_particle(analyzed).get_position(true), _particle(other).get_position(true));
+                const double dr_squared
+                    = particle_distance_squared(_particle(analyzed).get_position(true),
+                                                _particle(other).get_position(true));
 
                 const bool distance_check = (dr_squared < _r_cut_squared);
 
@@ -940,28 +1022,40 @@ void System::measure()
                 // GOFR ... TO BE FIXED IN EXERCISE 7
                 if (_measure.gofr and (dr_squared < _r_gofr_cut_squared))
                 {
-                    // Ragionando sulla condizione ho trovato un modo per trovare l'indice ed evitare quindi il ciclo for
+                    // Ragionando sulla condizione ho trovato un modo per trovare l'indice
+                    // ed evitare quindi il ciclo for
                     const double _bin_size_squared_inv = 1. / (_bin_size * _bin_size);
-                    const unsigned int index_to_insert_gofr = static_cast<unsigned int>(std::floor(std::sqrt(dr_squared * _bin_size_squared_inv))); // Voglio essere sicuro che faccia un troncamento verso il basso
+                    const unsigned int index_to_insert_gofr
+                        = static_cast<unsigned int>(std::floor(std::sqrt(
+                            dr_squared
+                            * _bin_size_squared_inv))); // Voglio essere sicuro che faccia
+                                                        // un troncamento verso il basso
 
-                    assert((index_to_insert_gofr < _n_bins) && (index_to_insert_gofr >= 0) && "Index out of bounds");
+                    assert((index_to_insert_gofr < _n_bins) && (index_to_insert_gofr >= 0)
+                           && "Index out of bounds");
                     _measurement(_measure.idx_gofr + index_to_insert_gofr) += 2;
                 }
                 // std::cerr << "Came here after gofr\n";
 
-                const double dr_squared_inv_cubed = distance_check * std::pow(dr_squared, -3.);
+                const double dr_squared_inv_cubed
+                    = distance_check * std::pow(dr_squared, -3.);
 
                 // POTENTIAL ENERGY
                 if (_measure.penergy)
                 {
-                    penergy_temp += dr_squared_inv_cubed * dr_squared_inv_cubed - dr_squared_inv_cubed; // POTENTIAL ENERGY
-                    // penergy_temp += dr_squared_inv_cubed * dr_squared_inv_cubed - dr_squared_inv_cubed;
+                    penergy_temp += dr_squared_inv_cubed * dr_squared_inv_cubed
+                                  - dr_squared_inv_cubed; // POTENTIAL ENERGY
+                    // penergy_temp += dr_squared_inv_cubed * dr_squared_inv_cubed -
+                    // dr_squared_inv_cubed;
                 }
                 // VIRIAL FOR PRESSURE ... TO BE FIXED IN EXERCISE 4
                 if (_measure.pressure)
                 {
-                    // virial += distance_check * (std::pow(dr_squared, -6.) - 0.5 * std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done after
-                    virial += dr_squared_inv_cubed * dr_squared_inv_cubed - 0.5 * dr_squared_inv_cubed;
+                    // virial += distance_check * (std::pow(dr_squared, -6.) - 0.5 *
+                    // std::pow(dr_squared, -3.)); // VIRIAL, multiplication by 48 done
+                    // after
+                    virial += dr_squared_inv_cubed * dr_squared_inv_cubed
+                            - 0.5 * dr_squared_inv_cubed;
                 }
             }
         }
@@ -980,7 +1074,9 @@ void System::measure()
         for (unsigned int i = 0; i < _npart; i++)
         {
             // _particle(i).get_velocity().print("Velocity");
-            kenergy_temp += 0.5 * arma::dot(_particle(i).get_velocity(), _particle(i).get_velocity());
+            kenergy_temp
+                += 0.5
+                 * arma::dot(_particle(i).get_velocity(), _particle(i).get_velocity());
         }
         kenergy_temp /= static_cast<double>(_npart);
         _measurement(_measure.idx_kenergy) = kenergy_temp;
@@ -1017,11 +1113,14 @@ void System::measure()
     // TO BE FIXED IN EXERCISE 4
     if (_measure.pressure)
     {
-        const double temperature = (_measure.temp) ? _measurement(_measure.idx_temp) : _temp;
-        _measurement(_measure.idx_pressure) = _rho * temperature + 16. * virial / (_volume); // 48. / 3. = 16...
+        const double temperature
+            = (_measure.temp) ? _measurement(_measure.idx_temp) : _temp;
+        _measurement(_measure.idx_pressure)
+            = _rho * temperature + 16. * virial / (_volume); // 48. / 3. = 16...
 #ifndef NDEBUG_TEMPERATURE_PRESSURE
         std::cout << "current virial value" << std::setw(8) << virial << '\n';
-        std::cout << "Actuale Temperature : " << temperature << "\tPressure : " << _measurement(_measure.idx_pressure) << "\n";
+        std::cout << "Actuale Temperature : " << temperature
+                  << "\tPressure : " << _measurement(_measure.idx_pressure) << "\n";
 #endif // NDEBUG_TEMPERATURE_PRESSURE
     }
 
@@ -1044,7 +1143,8 @@ void System::measure()
     // TO BE FIXED IN EXERCISE 6
     if (_measure.cv)
     {
-        // Saving total energy squared. The Mean calculation will happen in System::averages.
+        // Saving total energy squared. The Mean calculation will happen in
+        // System::averages.
         const double tenergy_squared = (tenergy_temp * _npart) * (tenergy_temp * _npart);
         _measurement(_measure.idx_cv) = tenergy_squared;
     }
@@ -1053,7 +1153,9 @@ void System::measure()
     // TO BE FIXED IN EXERCISE 6
     if (_measure.chi)
     {
-        // double chi_temp = magnetization * magnetization * _beta / static_cast<double>(_npart); // this Somehow functions... lets try calcultion explicitly
+        // double chi_temp = magnetization * magnetization * _beta /
+        // static_cast<double>(_npart); // this Somehow functions... lets try calcultion
+        // explicitly
 
         double temp_chi = magnetization * magnetization * _npart;
         // _measurement(_measure.idx_chi) = chi_temp;
@@ -1083,10 +1185,14 @@ void System::averages(const int blk)
     if (_measure.penergy)
     {
         average = _vtail + _average(_measure.idx_penergy);
+
         sum_average = _global_av(_measure.idx_penergy);
         sum_ave2 = _global_av2(_measure.idx_penergy);
         error = this->error(sum_average, sum_ave2, blk);
-        general_print(_measure.stream_penergy(), blk, average + _vtail, sum_average + _vtail, error);
+
+        sum_average = (sum_average / blk) + _vtail;
+
+        general_print(_measure.stream_penergy(), blk, average, sum_average, error);
     }
     // KINETIC ENERGY ////////////////////////////////////////////////////////////
     if (_measure.kenergy)
@@ -1095,7 +1201,10 @@ void System::averages(const int blk)
         sum_average = _global_av(_measure.idx_kenergy);
         sum_ave2 = _global_av2(_measure.idx_kenergy);
         error = this->error(sum_average, sum_ave2, blk);
-        general_print(_measure.stream_kenergy(), blk, average, sum_average, sum_ave2);
+
+        sum_average /= blk;
+
+        general_print(_measure.stream_kenergy(), blk, average, sum_average, error);
     }
     // TOTAL ENERGY //////////////////////////////////////////////////////////////
     if (_measure.tenergy)
@@ -1104,7 +1213,10 @@ void System::averages(const int blk)
         sum_average = _global_av(_measure.idx_tenergy);
         sum_ave2 = _global_av2(_measure.idx_tenergy);
         error = this->error(sum_average, sum_ave2, blk);
-        general_print(_measure.stream_tenergy(), blk, average, sum_average + _vtail, error);
+
+        sum_average = sum_average / blk + _vtail;
+
+        general_print(_measure.stream_tenergy(), blk, average, sum_average, error);
     }
     // TEMPERATURE ///////////////////////////////////////////////////////////////
     if (_measure.temp)
@@ -1113,20 +1225,27 @@ void System::averages(const int blk)
         sum_average = _global_av(_measure.idx_temp);
         sum_ave2 = _global_av2(_measure.idx_temp);
         error = this->error(sum_average, sum_ave2, blk);
-        general_print(_measure.stream_temp(), blk, average, sum_average, sum_ave2);
+
+        sum_average /= blk;
+
+        general_print(_measure.stream_temp(), blk, average, sum_average, error);
     }
     // PRESSURE //////////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 4
     if (_measure.pressure)
     {
 #ifndef NDEBUG_PRESSURE
-        std::cout << "Pressione Media Blocco : " << _average(_measure.idx_pressure) << "\n";
+        std::cout << "Pressione Media Blocco : " << _average(_measure.idx_pressure)
+                  << "\n";
 #endif
         average = _average(_measure.idx_pressure) + _ptail;
         sum_average = _global_av(_measure.idx_pressure);
         sum_ave2 = _global_av2(_measure.idx_pressure);
         error = this->error(sum_average, sum_ave2, blk);
-        general_print(_measure.stream_pressure(), blk, average, sum_average + _ptail, error);
+
+        sum_average = sum_average / blk + _ptail;
+
+        general_print(_measure.stream_pressure(), blk, average, sum_average, error);
     }
 
     // GOFR //////////////////////////////////////////////////////////////////////
@@ -1138,10 +1257,15 @@ void System::averages(const int blk)
         _measure.stream_partial_gofr() << std::setw(5) << blk;
         for (unsigned int bin = 0; bin < _n_bins; bin++)
         {
-            const double delta_v = 4. / 3. * M_PI * (_bin_size * _bin_size * _bin_size) * (3 * bin * bin + 3. * bin + 1);
+            const double delta_v = 4. / 3. * M_PI * (_bin_size * _bin_size * _bin_size)
+                                 * (3 * bin * bin + 3. * bin + 1);
+
             const double normalization = 1 / (_rho * _npart * delta_v);
+
             average = _average(_measure.idx_gofr + bin) * normalization;
+
             _measure.stream_partial_gofr() << std::setw(12) << average;
+
             if (blk == get_nbl()) // Last cycle in this moment we write gofr config.
             {
                 _measure.stream_gofr().precision(12);
@@ -1149,7 +1273,11 @@ void System::averages(const int blk)
                 sum_ave2 = _global_av2(_measure.idx_gofr + bin);
                 error = this->error(sum_average, sum_ave2, blk);
 
-                final_gofr_print(_measure.stream_gofr(), blk, bin * _bin_size, sum_average * normalization, error * normalization);
+                sum_average *= normalization / blk;
+                error *= normalization;
+
+                final_gofr_print(
+                    _measure.stream_gofr(), blk, bin * _bin_size, sum_average, error);
             }
         }
         _measure.stream_partial_gofr() << '\n';
@@ -1162,6 +1290,9 @@ void System::averages(const int blk)
         sum_average = _global_av(_measure.idx_magnet);
         sum_ave2 = _global_av2(_measure.idx_magnet);
         error = this->error(sum_average, sum_ave2, blk);
+
+        sum_average /= blk;
+
         general_print(_measure.stream_magnet(), blk, average, sum_average, error);
     }
 
@@ -1179,7 +1310,8 @@ void System::averages(const int blk)
 
         // Resetting last value and recomputing with actuale average
         _global_av(_measure.idx_cv) -= _average(_measure.idx_cv);
-        _global_av2(_measure.idx_cv) -= _average(_measure.idx_cv) * _average(_measure.idx_cv);
+        _global_av2(_measure.idx_cv)
+            -= _average(_measure.idx_cv) * _average(_measure.idx_cv);
 
         _global_av(_measure.idx_cv) += average;
         _global_av2(_measure.idx_cv) += average * average;
@@ -1188,6 +1320,9 @@ void System::averages(const int blk)
         sum_average = _global_av(_measure.idx_cv);
         sum_ave2 = _global_av2(_measure.idx_cv);
         error = this->error(sum_average, sum_ave2, blk);
+
+        sum_average /= blk;
+
         general_print(_measure.stream_cv(), blk, average, sum_average, error);
     }
 
@@ -1196,12 +1331,14 @@ void System::averages(const int blk)
 
     if (_measure.chi)
     {
-        double mean_magnetization_squared = _average(_measure.idx_magnet) * _average(_measure.idx_magnet);
+        double mean_magnetization_squared
+            = _average(_measure.idx_magnet) * _average(_measure.idx_magnet);
         average = _beta * (_average(_measure.idx_chi) - mean_magnetization_squared);
 
         // Resetting last value and recomputing with actuale average
         _global_av(_measure.idx_chi) -= _average(_measure.idx_chi);
-        _global_av2(_measure.idx_chi) -= _average(_measure.idx_chi) * _average(_measure.idx_chi);
+        _global_av2(_measure.idx_chi)
+            -= _average(_measure.idx_chi) * _average(_measure.idx_chi);
 
         _global_av(_measure.idx_chi) += average;
         _global_av2(_measure.idx_chi) += average * average;
@@ -1209,6 +1346,9 @@ void System::averages(const int blk)
         sum_average = _global_av(_measure.idx_chi);
         sum_ave2 = _global_av2(_measure.idx_chi);
         error = this->error(sum_average, sum_ave2, blk);
+
+        sum_average /= blk;
+
         general_print(_measure.stream_chi(), blk, average, sum_average, error);
     }
 
@@ -1231,20 +1371,26 @@ arma::vec3 System::particle_distance(const arma::vec3& first, const arma::vec3& 
     return distance;
 }
 
-double System::particle_distance_squared(const arma::vec3& first, const arma::vec3& second)
+double System::particle_distance_squared(const arma::vec3& first,
+                                         const arma::vec3& second)
 {
     const arma::vec3 distance = particle_distance(first, second);
     return arma::dot(distance, distance);
 }
 
-/// @brief Perform calculation of block error as \f$ \frac{<val^2> - <val>^2}{N} \f$.
+/// @brief Perform calculation of block error as \f$\sqrt(\frac{<val^2> - <val>^2}{N})
+/// \f$.
 /// @param acc First accumulator variable
-/// @param acc2 Second Accumulator variable, the accumulator in this case is the sum of the squared values
+/// @param acc2 Second Accumulator variable, the accumulator in this case is the sum of
+/// the squared values
 /// @param blk number of elements in the block
 /// @return Computed error
 double System::error(const double acc, const double acc2, const int blk)
 {
-    return (blk <= 1) ? 0.0 : std::sqrt(std::fabs(acc2 / double(blk) - std::pow(acc / double(blk), 2)) / double(blk));
+    return (blk <= 1)
+             ? 0.0
+             : std::sqrt(std::fabs(acc2 / double(blk) - std::pow(acc / double(blk), 2))
+                         / double(blk));
 }
 
 /****************************************************************
