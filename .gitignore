@@ -25,6 +25,7 @@ NSL_SIMULATOR/OUTPUT/seed.out
 **/temperature.dat
 **/total_energy.dat
 **/acceptance.dat
+**/partial_gofr.da
 **/cauchy_*.dat
 **/exponential_*.dat
 **/uniform_*.dat
