@@ -10,7 +10,7 @@ LOCAL_SRC_FILE = ../local_src/wave_function.cpp ../local_src/simulated_annealing
 # Compiler and compiler flags
 # Default compiler is Clang++-17 with libc++ as standard library implementation
 INCFLAGS= -I../../src -I../local_src
-CXXFLAGS= $(INCFLAGS) -std=c++17 -Wall -Wextra -Werror -std=c++17 -O3 -DUSE_PARALLEL -DNDEBUG -ffast-math -march=native
+CXXFLAGS= $(INCFLAGS) -std=c++17 -Wall -Wextra -Werror -std=c++17 -O3 -D_USE_MATH_DEFINES -DUSE_PARALLEL -DNDEBUG -ffast-math -march=native
 # O2 because it can show more warning due to flow variable analisys
 # c++17 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 

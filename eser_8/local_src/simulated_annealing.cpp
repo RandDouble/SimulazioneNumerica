@@ -5,8 +5,8 @@
 
 void SimulatedAnnealing::initialize_rng(std::size_t rows_to_skip)
 {
-    sampler.get_rng_ptr()->Initializer("seed.in", "Primes", rows_to_skip);
-    sampler.set_n_step(1); // We want montecarlo to generate a step at time
+    m_sampler.get_rng_ptr()->Initializer("seed.in", "Primes", rows_to_skip);
+    m_sampler.set_n_step(1); // We want montecarlo to generate a step at time
 }
 
 void SimulatedAnnealing::write_results(const std::string& filename)
@@ -18,7 +18,7 @@ void SimulatedAnnealing::write_results(const std::string& filename)
 
 void SimulatedAnnealing::save_seed()
 {
-    sampler.get_rng_ptr()->SaveSeed("montecarlo_seed.out");
+    m_sampler.get_rng_ptr()->SaveSeed("montecarlo_seed.out");
 }
 
 #pragma endregion IO_FUNCTIONS
@@ -30,13 +30,13 @@ size_t SimulatedAnnealing::tempering_cycle()
     size_t accepted_temp_step = 0;
     double starting_position = 0.;
     values old_energy = evaluate_energy(starting_position);
-    PsiParam old_param = wave.param();
+    PsiParam old_param = m_wave.param();
 
     for (size_t j = 0; j < n_tempering_step; j++)
     {
         assert(!std::isinf(old_energy.value) && "Old energy is Infinite");
         assert(!std::isnan(old_energy.value) && "Old energy is NaN");
-        wave.param(propose_new_param()); // Update wave function parameters
+        m_wave.param(propose_new_param()); // Update wave function parameters
         const values new_energy = evaluate_energy(starting_position);
         assert(!std::isnan(new_energy.value) && "New energy is NaN");
         assert(!std::isinf(new_energy.value) && "New energy is Infinite");
@@ -45,12 +45,13 @@ size_t SimulatedAnnealing::tempering_cycle()
             = new_energy.value - old_energy.value; // Calculate energy difference
 
         assert(!std::isnan(delta_e) && "Delta energy is NaN");
-        if (sampler.get_rng_ptr()->Rannyu() < boltzmann_weight(delta_e))
+        if (m_sampler.get_rng_ptr()->Rannyu() < boltzmann_weight(delta_e))
         {
 #ifndef CHECK_TEMPERING_MOVEMENT
             std::cout << "Step Accepted, current delta energy : " << delta_e << '\n';
+#endif
             old_energy = new_energy;
-            old_param = wave.param();
+            old_param = m_wave.param();
             accepted_temp_step++;
         }
         else
@@ -58,10 +59,15 @@ size_t SimulatedAnnealing::tempering_cycle()
 #ifndef CHECK_TEMPERING_MOVEMENT
             std::cout << "Step Rejected, current delta energy : " << delta_e << '\n';
 #endif
-            wave.param(old_param); // Restore old parameters
+            m_wave.param(old_param); // Restore old parameters
         }
 
-        param_history << get_temperature() << ',' << wave.mu() << ',' << wave.sigma()
+#ifndef CHECK_TEMPERING_MOVEMENT
+        std::cout << "Current Energy" << std::setw(8) << old_energy.value << " +- "
+                  << std::setw(8) << old_energy.error << '\n';
+#endif // CHECK_TEMPERING_MOVEMENT
+
+        param_history << get_temperature() << ',' << m_wave.mu() << ',' << m_wave.sigma()
                       << ',' << old_energy << '\n';
     }
     return accepted_temp_step;
@@ -96,16 +102,16 @@ values SimulatedAnnealing::evaluate_energy(const double x_start)
     const double weight = 1. / monte_carlo_step;
     double acceptance = 0.;
 #endif
-    sampler.set_n_step(1);
+    m_sampler.set_n_step(1);
 
     auto translation = [&]() {
-        return sampler.get_rng_ptr()->Rannyu(-scaling_movement_law(),
-                                             scaling_movement_law());
+        return m_sampler.get_rng_ptr()->Rannyu(-scaling_movement_law(),
+                                               scaling_movement_law());
     };
 
-    auto PDF = [&](double x) { return wave.PDF(x); };
+    auto PDF = [&](double x) { return m_wave.PDF(x); };
 
-    sampler.set_current_position(x_start);
+    m_sampler.set_current_position(x_start);
     double x_i = x_start;
 
     for (auto&& block : block_result)
@@ -116,9 +122,9 @@ values SimulatedAnnealing::evaluate_energy(const double x_start)
 #ifndef CHECK_MONTECARLO_MOVEMENT
             double x_old = x_i;
 #endif
-            x_i = sampler.generate(PDF, translation);
+            x_i = m_sampler.generate(PDF, translation);
 
-            partial = wave.hamiltonian(x_i);
+            partial = m_wave.hamiltonian(x_i);
 
 #ifndef CHECK_MONTECARLO_MOVEMENT
             acceptance += (x_i != x_old);
@@ -179,10 +185,11 @@ void SimulatedAnnealing::update_temperature()
 PsiParam SimulatedAnnealing::propose_new_param()
 {
 
-    PsiParam new_param = wave.param();
+    PsiParam new_param = m_wave.param();
 
-    new_param.mu += sampler.get_rng_ptr()->Rannyu(-delta_move.mu, delta_move.mu);
-    new_param.sigma += sampler.get_rng_ptr()->Rannyu(-delta_move.sigma, delta_move.sigma);
+    new_param.mu += m_sampler.get_rng_ptr()->Rannyu(-delta_move.mu, delta_move.mu);
+    new_param.sigma
+        += m_sampler.get_rng_ptr()->Rannyu(-delta_move.sigma, delta_move.sigma);
 
     assert(!std::isinf(new_param.mu) && "mu is infinite");
     assert(!std::isinf(new_param.sigma) && "sigma is infinite");
