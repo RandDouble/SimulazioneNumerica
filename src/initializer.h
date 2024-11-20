@@ -28,7 +28,8 @@ std::array<arma::vec2, SIZE> circle_initializer()
     for (size_t i = 0; i < SIZE; i++)
     {
         double angle = 2. * M_PI * static_cast<double>(i) / static_cast<double>(SIZE);
-        result[i] = {std::cos(angle), std::sin(angle)}; // @todo: sistemare, i punti sono da fare a caso
+        result[i] = {std::cos(angle),
+                     std::sin(angle)}; // @todo: sistemare, i punti sono da fare a caso
     }
     return result;
 }
@@ -52,8 +53,7 @@ std::vector<arma::vec2> load_province_position(const std::string& filename)
 
     if (!fin)
     {
-        std::cerr << "Could Not Open File " << filename << '\n'
-                  << "Aborting\n";
+        std::cerr << "Could Not Open File " << filename << '\n' << "Aborting\n";
         exit(-1);
     }
 
@@ -71,8 +71,7 @@ std::vector<std::string> load_province_name(const std::string& filename)
 
     if (!fin)
     {
-        std::cerr << "Could Not Open File " << filename << '\n'
-                  << "Aborting\n";
+        std::cerr << "Could Not Open File " << filename << '\n' << "Aborting\n";
         exit(-1);
     }
 
@@ -88,15 +87,17 @@ arma::mat create_matrix(std::vector<arma::vec2>& vec)
     arma::mat result_mat;
     result_mat.zeros(vec.size(), vec.size());
 
-    // std::cout << "Matrix size during create_matric is : " << arma::size(result_mat) << '\n';
+    // std::cout << "Matrix size during create_matric is : " << arma::size(result_mat) <<
+    // '\n';
 
     for (size_t i = 0; i < vec.size(); i++)
     {
-        for (size_t j = 0; j < vec.size(); j++)
+        for (size_t j = i; j < vec.size(); j++)
         {
             // std::cout << "current i :" << i << "current j : " << j << '\n';
             arma::vec2 distance = vec[i] - vec[j];
             result_mat(i, j) = arma::norm(distance);
+            result_mat(j, i) = result_mat(i, j);
         }
     }
     return result_mat;
@@ -118,7 +119,8 @@ std::size_t PBC(const std::size_t SIZE, std::size_t idx)
         idx += SIZE;
     }
 
-    assert((idx != 0ull) && "You stupid man, must not touch the first city!\nHow you dare!!!\n");
+    assert((idx != 0ull)
+           && "You stupid man, must not touch the first city!\nHow you dare!!!\n");
     return idx;
 }
 
