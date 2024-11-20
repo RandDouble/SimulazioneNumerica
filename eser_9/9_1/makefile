@@ -9,25 +9,25 @@ LOCAL_SRC_FILE =
 LOCAL_HEADER_FILE = initializer.h mutation.h population.h swap_functions.h
 
 # Compiler and compiler flags
-# Default compiler is Clang++-17 with libc++ as standard library implementation
+# Default compiler is Clang++-19 with libc++ as standard library implementation
 INCFLAGS= -I../../src
 CXXFLAGS= $(INCFLAGS) -Wall -Wextra -Werror -O3 -ffast-math -march=native -std=c++17 -fopenmp -DUSE_PARALLEL
 LDFLAGS = -larmadillo
 # O2 because it can show more warning due to flow variable analisys
-# c++17 because it has some niceties, like in better algorithm and numeric, enabling parallelism
+# c++19 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 
 ifeq ($(COMPILER), CLANG_LIBCPP) # Only because it support c++20 needed for other projects
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libstdc++
 	LDFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
 	CXX = g++
 	LDFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP, flags to set library and use parallel algorithms
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 endif
 

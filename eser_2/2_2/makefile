@@ -1,5 +1,5 @@
 PROGNAME= main_2_2.exe
-MAIN= main_2_2.cpp 
+MAIN= main_2_2.cpp
 SRC_FILES = random.cpp utilities.cpp random_walk.cpp vector3D.cpp
 # LOCAL_SRC_FILE = buffon.cpp
 # Compiler and compiler flags
@@ -8,18 +8,19 @@ LDFLAGS=
 CXXFLAGS= $(INCFLAGS) -Wall -Wextra -Werror -O3 -std=c++17 -ffast-math -march=native -fopenmp -DUSE_PARALLEL
 
 ifeq ($(COMPILER), CLANG_LIBCPP) # Only because it support c++20 needed for other projects
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libstdc++
 	LDFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
 	CXX = g++
 	LDFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP, flags to set library and use parallel algorithms
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
+	LDFLAGS += -fuse-ld=lld
 endif
 
 SOURCE_DIR= ../../src

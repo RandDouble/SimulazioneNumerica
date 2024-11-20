@@ -8,25 +8,26 @@ HEADER_FILES = metropolis.h
 LOCAL_SRC_FILE = ../local_src/wave_function.cpp ../local_src/simulated_annealing.cpp
 
 # Compiler and compiler flags
-# Default compiler is Clang++-17 with libc++ as standard library implementation
+# Default compiler is Clang++-19 with libc++ as standard library implementation
 INCFLAGS= -I../../src -I../local_src
-CXXFLAGS= $(INCFLAGS) -std=c++17 -Wall -Wextra -Werror -std=c++17 -O3 -D_USE_MATH_DEFINES -DUSE_PARALLEL -DNDEBUG -ffast-math -march=native
+CXXFLAGS= $(INCFLAGS) -std=c++17 -Wall -Wextra -Werror -O3 -D_USE_MATH_DEFINES -DUSE_PARALLEL -DNDEBUG -ffast-math -march=native
 # O2 because it can show more warning due to flow variable analisys
-# c++17 because it has some niceties, like in better algorithm and numeric, enabling parallelism
+# c++19 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 
 ifeq ($(COMPILER), CLANG_LIBCPP) # Only because it support c++20 needed for other projects
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libstdc++
 	LDFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
 	CXX = g++
 	LDFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP, flags to set library and use parallel algorithms
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
+	LDFLAGS += -fuse-ld=lld
 endif
 
 SOURCE_DIR= ../../src

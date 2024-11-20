@@ -8,21 +8,21 @@ HEADER_FILES =
 LOCAL_SRC_FILE = random_gen_sim.cpp utilities_local.cpp
 
 # Compiler and compiler flags
-# Default compiler is Clang++-17 with libc++ as standard library implementation
+# Default compiler is Clang++-19 with libc++ as standard library implementation
 INCFLAGS= -I../src
 SOURCE_DIR= ../src
 OBJ_DIR= ./obj
 
 CXXFLAGS= $(INCFLAGS) -Wall -Wextra -O3 -flto -std=c++20 -march=native -DUSE_PARALLEL
 # O2 because it can show more warning due to flow variable analisys
-# c++17 because it has some niceties, like in better algorithm and numeric, enabling parallelism
+# c++19 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 
 
 ifeq ($(COMPILER), CLANG_LIBCPP) # Only because it support c++20 needed for other projects
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libstc++
 	LDFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)

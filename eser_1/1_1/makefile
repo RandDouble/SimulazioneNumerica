@@ -1,9 +1,9 @@
 PROGNAME= main_1_1.exe
-MAIN= main_1_1.cpp 
+MAIN= main_1_1.cpp
 SRC_FILES = random.cpp monte_carlo.cpp utilities.cpp
 
 # Compiler and compiler flags
-# Default compiler is Clang++-17 with libc++ as standard library implementation
+# Default compiler is Clang++-19 with libc++ as standard library implementation
 INCFLAGS= -I../../src
 LDFLAGS =
 CXXFLAGS= $(INCFLAGS)\
@@ -16,10 +16,10 @@ CXXFLAGS= $(INCFLAGS)\
 # Choosing some option for different compilers
 
 ifeq ($(COMPILER), CLANG_LIBCPP)
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libstdc++
 	LDFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
@@ -27,7 +27,7 @@ else ifeq ($(COMPILER), GNU)
 	CXXFLAGS += -Wno-unknown-pragmas
 	LDFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP, flags to set library and use parallel algorithms
-	CXX = clang++-17
+	CXX = clang++-19
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 endif
 
