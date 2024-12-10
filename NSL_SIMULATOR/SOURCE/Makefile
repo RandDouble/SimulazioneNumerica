@@ -9,10 +9,10 @@ AFLAGS = -larmadillo
 # Choosing some option for different compilers
 
 ifeq ($(COMPILER), CLANG_LIBCPP)
-	CC = clang++-17
+	CC = clang++-19
 	CXXFLAGS+= -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
-	CC = clang++-17
+	CC = clang++-19
 	CXXFLAGS += -stdlib=libstc++
 	AFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
