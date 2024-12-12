@@ -11,6 +11,7 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #include "system.h"
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <string>
 
 #define NDEBUG_FORCE
@@ -825,6 +826,17 @@ void System ::initialize_properties()
 /// files, writes seed used to file.
 void System ::finalize()
 {
+    namespace fs = std::filesystem;
+    // Check if output directory exists, if not create it
+    if (!fs::exists("../OUTPUT"))
+    {
+        fs::create_directory("../OUTPUT");
+    }
+    if (!fs::exists("../OUTPUT/CONFIG"))
+    {
+        fs::create_directory("../OUTPUT/CONFIG");
+    }
+
     this->write_configuration(); // write to file final config of the system
     _rnd.SaveSeed("../OUTPUT/seed.out");
     std::ofstream coutf;

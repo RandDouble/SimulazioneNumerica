@@ -19,7 +19,7 @@ else ifeq ($(COMPILER), GNU)
 	CC = g++
 	AFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP
-	CC = clang++-17
+	CC = clang++-19
 	CXXFLAGS+= -stdlib=libc++ -fexperimental-library
 endif
 
