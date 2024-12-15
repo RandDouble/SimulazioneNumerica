@@ -12,7 +12,7 @@
 
 int main()
 {
-    std::ifstream config_file("config.dat");
+    std::ifstream config_file("config.jsonc");
     Options opt;
     file_parser(config_file, opt);
     config_file.close();
@@ -52,8 +52,8 @@ int main()
     // Thermalization
     auto current_pos = start_pos;
     metr.set_n_step(opt.n_thermalization_step);
-    current_pos = metr.generate<Vector3D>(current_pos, opt.convert[opt.func], [&]
-                                          { return generator(&rng, delta); });
+    current_pos = metr.generate<Vector3D>(
+        current_pos, opt.convert[opt.func], [&] { return generator(&rng, delta); });
 
     // Main Loop
     metr.set_n_step(opt.n_particle_step);
@@ -65,8 +65,9 @@ int main()
 
         for (auto& instant_pos : v_instant_pos)
         {
-            current_pos = metr.generate<Vector3D>(current_pos, opt.convert[opt.func], [&]
-                                                  { return generator(&rng, delta); });
+            current_pos = metr.generate<Vector3D>(current_pos,
+                                                  opt.convert[opt.func],
+                                                  [&] { return generator(&rng, delta); });
             instant_pos = current_pos.distance();
         }
 

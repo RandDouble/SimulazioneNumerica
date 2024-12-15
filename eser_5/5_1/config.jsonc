@@ -1,4 +1,22 @@
-BLOCKS                  20000
+{
+    "blocks": 20000,
+    "block_steps": 1,
+    "particle_steps": 1,
+    "thermalization_steps": 50,
+    "delta": 1.1,
+    "first_row_initializer": 0,
+    "second_row_initializer": 1,
+    "starting_position": [0.0, 0.0, 0.0],
+    "output_file": true,
+    "output_video": false,
+    "info_file": true,
+    "mean_radius_file": false,
+    "reset": false,
+    "wave_function": "GROUND_STATE",
+    "generator": "UNIFORM"
+}
+
+/*
 BLOCK_STEPS             1
 PARTICLE_STEPS          1
 THERMALIZATION_STEPS    50
@@ -13,3 +31,4 @@ MEAN_RADIUS_FILE        1
 RESET                   0
 WAVE_FUNCTION           GROUND_STATE
 GENERATOR               UNIFORM
+*/

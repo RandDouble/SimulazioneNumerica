@@ -6,11 +6,12 @@ MAIN= main_5_1.cpp
 SRC_FILES = random.cpp utilities.cpp vector3D.cpp
 HEADER_FILES = metropolis.h
 LOCAL_SRC_FILE = wave_function.cpp options.cpp
+EXTERNAL_HEADER_FILE = json.hpp
 
 # Compiler and compiler flags
 # Default compiler is Clang++-19 with libc++ as standard library implementation
-INCFLAGS= -I../../src
-CXXFLAGS= $(INCFLAGS) -g -Wall -Wextra -Werror -O2 -std=c++17 -DUSE_PARALLEL -DNDEBUG
+INCFLAGS= -I../../src -I../../external_include
+CXXFLAGS= $(INCFLAGS) -g -Wall -Wextra -Werror -O2 -std=c++17 -DUSE_PARALLEL # -DNDEBUG
 # O2 because it can show more warning due to flow variable analisys
 # c++19 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 
