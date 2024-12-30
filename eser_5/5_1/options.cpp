@@ -21,6 +21,38 @@ std::string wave_name(WAVE_FUNCTION wave_enum)
     }
 }
 
+WAVE_FUNCTION wave_enum(const std::string &wave_str)
+{
+    std::string value_upper = wave_str;
+    // Transforming to uppercase
+    std::transform(value_upper.begin(), value_upper.end(), value_upper.begin(), toupper);
+    // Choosing the right enum value
+    for (WAVE_FUNCTION wave_test = WAVE_FUNCTION::GROUND_STATE; wave_test != WAVE_FUNCTION::LAST;
+         wave_test = static_cast<WAVE_FUNCTION>(static_cast<int>(wave_test) + 1))
+    {
+        // std::cout << "Testing : " << value_upper << " against : " << wave_name(wave_test) << '\n';
+        if (value_upper == wave_name(wave_test))
+            return wave_test;
+    }
+    return WAVE_FUNCTION::LAST;
+}
+
+NEW_POS_GENERATOR generator_enum(const std::string &value)
+{
+    std::string value_upper = value;
+    // Transforming to uppercase
+    std::transform(value_upper.begin(), value_upper.end(), value_upper.begin(), toupper);
+    for (NEW_POS_GENERATOR gen_test = NEW_POS_GENERATOR::UNIFORM; gen_test != NEW_POS_GENERATOR::LAST;
+         gen_test = static_cast<NEW_POS_GENERATOR>(static_cast<int>(gen_test) + 1))
+    {
+        // std::cout << "Testing : " << value_upper << " against : " << generator_name(gen_test) << '\n';
+    
+        if (value == generator_name(gen_test))
+            return gen_test;
+    }
+    return NEW_POS_GENERATOR::LAST;
+}
+
 std::string generator_name(NEW_POS_GENERATOR wave_enum)
 {
     switch (wave_enum)
@@ -39,14 +71,14 @@ std::string generator_name(NEW_POS_GENERATOR wave_enum)
     }
 }
 
-bool compare_value(std::ifstream& in)
+bool compare_value(std::ifstream &in)
 {
     int appo = 0;
     in >> appo;
     return (appo > 0);
 }
 
-void file_parser(std::ifstream& in, Options& opt)
+void file_parser(std::ifstream &in, Options &opt)
 {
     nlohmann::json data = nlohmann::json::parse(in, nullptr, true, true);
     in.close();
@@ -81,24 +113,10 @@ void file_parser(std::ifstream& in, Options& opt)
     // Wave Function and Generator types
     std::string value = "";
     data["wave_function"].get_to(value);
-    std::transform(value.begin(), value.end(), value.begin(), toupper);
-    for (WAVE_FUNCTION wave_test = WAVE_FUNCTION::GROUND_STATE;
-         wave_test != WAVE_FUNCTION::LAST;
-         wave_test = static_cast<WAVE_FUNCTION>(static_cast<int>(wave_test) + 1))
-    {
-        if (value == wave_name(wave_test))
-            opt.func = wave_test;
-    }
+    opt.func = wave_enum(value);
     std::cout << "Wave Function analyzed is : " << wave_name(opt.func) << "\n";
 
     data["generator"].get_to(value);
-    std::transform(value.begin(), value.end(), value.begin(), toupper);
-    for (NEW_POS_GENERATOR gen_test = NEW_POS_GENERATOR::UNIFORM;
-         gen_test != NEW_POS_GENERATOR::LAST;
-         gen_test = static_cast<NEW_POS_GENERATOR>(static_cast<int>(gen_test) + 1))
-    {
-        if (value == generator_name(gen_test))
-            opt.new_pos_generator = gen_test;
-    }
+    opt.new_pos_generator = generator_enum(value);
     std::cout << "Generator used is : " << generator_name(opt.new_pos_generator) << "\n";
 }

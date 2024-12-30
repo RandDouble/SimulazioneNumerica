@@ -22,14 +22,14 @@ int main()
 
     auto PDF = [&](const double x) { return wave.PDF(x); };
 
-    for (auto& point : points)
+    for (auto &point : points)
     {
         point = metro.generate(PDF, sampler);
     }
 
     std::ofstream fout("test.dat");
     fout << "x\n";
-    for (const auto& point : points)
+    for (const auto &point : points)
     {
         fout << point << '\n';
     }

@@ -50,9 +50,9 @@ int main()
     // std::cout << "Pre Swapping Initialization\n";
     // Printing Population
     // std::for_each(population.begin(), population.end(), [](const Individual<SIZE>& el)
-                //   { el.print_DNA(); });
+    //   { el.print_DNA(); });
 
-    for (auto& element : population)
+    for (auto &element : population)
     {
         for (uint32_t i = 0; i < initial_shuffling; i++)
         {
@@ -64,7 +64,7 @@ int main()
     // Printing Population
     std::for_each(population.begin(), population.end(), print_vector<uint8_t>());
     population.sort_population(circle_positions);
-    for (auto& pop : population)
+    for (auto &pop : population)
     {
         // pop.print_DNA();
         std::cout << "Cost is : " << pop.cost(circle_positions) << '\n';
@@ -89,7 +89,7 @@ int main()
 
     foff << "x,y\n";
 
-    for (auto& x : *(population.begin()))
+    for (auto &x : *(population.begin()))
     {
         foff << circle_positions[x].at(0) << ',' << circle_positions[x].at(1) << '\n';
     }
@@ -100,7 +100,7 @@ int main()
     std::cout << "Starting Square Test\n";
 
     // Shuffling population for square
-    for (auto& element : population)
+    for (auto &element : population)
     {
         for (uint32_t i = 0; i < initial_shuffling; i++)
         {
@@ -110,7 +110,7 @@ int main()
 
     // std::for_each(population.begin(), population.end(), print_vector<uint8_t>());
     population.sort_population(square_positions);
-    for (auto& pop : population)
+    for (auto &pop : population)
     {
         // pop.print_DNA();
         std::cout << "Cost is : " << pop.cost(square_positions) << '\n';
@@ -136,7 +136,7 @@ int main()
 
     foff << "x,y\n";
 
-    for (auto& x : *(population.begin()))
+    for (auto &x : *(population.begin()))
     {
         std::cout << static_cast<uint16_t>(x) << " ";
         foff << square_positions[x].at(0) << ',' << square_positions[x].at(1) << '\n';

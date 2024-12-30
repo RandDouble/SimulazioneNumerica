@@ -18,7 +18,7 @@ inline double integrand_anti(double x)
 double integrand_anti_expansion_norm(double x)
 {
     constexpr double denom = 1. - (M_PI_4 * M_PI_4 / 6.);
-    constexpr double other_piece = M_PI_2 * M_PI_4 ; // pi^2 / 8
+    constexpr double other_piece = M_PI_2 * M_PI_4; // pi^2 / 8
     double y = (1 - other_piece * (x - 0.5) * (x - 0.5)) / denom;
     return y;
 }

@@ -11,8 +11,7 @@
 
 constexpr std::size_t SIZE = 10;
 
-template <std::size_t SIZE = SIZE>
-bool test_swap_functions_swap_ranges()
+template <std::size_t SIZE = SIZE> bool test_swap_functions_swap_ranges()
 {
     std::array<int, SIZE> test_arr;
     bool is_correct = true;
@@ -31,8 +30,7 @@ bool test_swap_functions_swap_ranges()
     return is_correct;
 }
 
-template <std::size_t SIZE = SIZE>
-bool test_swap_functions_rotate()
+template <std::size_t SIZE = SIZE> bool test_swap_functions_rotate()
 {
     std::array<int, SIZE> test_arr;
     bool is_correct = true;
@@ -51,8 +49,7 @@ bool test_swap_functions_rotate()
     return is_correct;
 }
 
-template <std::size_t SIZE = SIZE>
-bool test_swap_functions_reverse()
+template <std::size_t SIZE = SIZE> bool test_swap_functions_reverse()
 {
     std::array<int, SIZE> test_arr;
     bool is_correct = true;
@@ -71,8 +68,7 @@ bool test_swap_functions_reverse()
     return is_correct;
 }
 
-template <std::size_t SIZE = SIZE>
-bool test_PBC()
+template <std::size_t SIZE = SIZE> bool test_PBC()
 {
     print_vector<size_t> print_index;
     std::vector<size_t> indexes(30);
@@ -82,8 +78,7 @@ bool test_PBC()
 
     print_index(indexes, 2);
 
-    std::for_each(indexes.begin(), indexes.end(), [&](size_t& el)
-                  { el = PBC(SIZE, el); });
+    std::for_each(indexes.begin(), indexes.end(), [&](size_t &el) { el = PBC(SIZE, el); });
 
     std::cout << "Indexes after PBC : \n";
 
@@ -93,15 +88,14 @@ bool test_PBC()
 
     bool is_correct = true;
 
-    for (auto& idx : indexes)
+    for (auto &idx : indexes)
     {
         is_correct = is_correct && idx > 0 && idx < (SIZE + 1);
     }
     return is_correct;
 }
 
-template <std::size_t SIZE = SIZE>
-bool test_pair_permutation()
+template <std::size_t SIZE = SIZE> bool test_pair_permutation()
 {
     bool is_correct = true;
     Random rng;
@@ -118,8 +112,7 @@ bool test_pair_permutation()
 
     cities.print_DNA();
 
-    std::cout << '\n'
-              << "Doing more shuffling, checking for duplicates and if touching first\n\n";
+    std::cout << '\n' << "Doing more shuffling, checking for duplicates and if touching first\n\n";
 
     for (int i = 0; i < 100; i++)
     {
@@ -140,8 +133,7 @@ bool test_pair_permutation()
     return is_correct;
 }
 
-template <std::size_t SIZE = SIZE>
-bool test_shift_block()
+template <std::size_t SIZE = SIZE> bool test_shift_block()
 {
     bool is_correct = true;
     Random rng;
@@ -161,8 +153,7 @@ bool test_shift_block()
 
     cities.print_DNA();
 
-    std::cout << '\n'
-              << "Doing more shuffling, checking for duplicates and if touching first\n";
+    std::cout << '\n' << "Doing more shuffling, checking for duplicates and if touching first\n";
 
     for (int i = 0; i < 100; i++)
     {
@@ -184,8 +175,7 @@ bool test_shift_block()
     return is_correct;
 }
 
-template <std::size_t SIZE = SIZE>
-bool test_permutate_contiguos()
+template <std::size_t SIZE = SIZE> bool test_permutate_contiguos()
 {
 
     bool is_correct = true;
@@ -204,8 +194,7 @@ bool test_permutate_contiguos()
 
     cities.print_DNA();
 
-    std::cout << '\n'
-              << "Doing more shuffling, checking for duplicates and if touching first\n";
+    std::cout << '\n' << "Doing more shuffling, checking for duplicates and if touching first\n";
 
     for (int i = 0; i < 100; i++)
     {
@@ -226,8 +215,7 @@ bool test_permutate_contiguos()
     return is_correct;
 }
 
-template <std::size_t SIZE = SIZE>
-bool test_inversion()
+template <std::size_t SIZE = SIZE> bool test_inversion()
 {
     bool is_correct = true;
     Random rng;
@@ -245,8 +233,7 @@ bool test_inversion()
 
     cities.print_DNA();
 
-    std::cout << '\n'
-              << "Doing more inversions, checking for duplicates and if touching first\n";
+    std::cout << '\n' << "Doing more inversions, checking for duplicates and if touching first\n";
 
     for (int i = 0; i < 100; i++)
     {
@@ -267,8 +254,7 @@ bool test_inversion()
     return is_correct;
 }
 
-template <std::size_t SIZE = SIZE>
-bool test_crossover()
+template <std::size_t SIZE = SIZE> bool test_crossover()
 {
     Random rng;
     initializer(rng);

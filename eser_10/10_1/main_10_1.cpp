@@ -45,13 +45,11 @@ struct Mutation_Probabilities
     void print(const int rank) const;
 };
 
-arma::mat load_distance_matrix(const int rank,
-                               std::vector<arma::vec2>& prov_pos,
-                               std::vector<std::string>& prov_name);
+arma::mat load_distance_matrix(const int rank, std::vector<arma::vec2> &prov_pos, std::vector<std::string> &prov_name);
 
-void communicate_distance_matrix(const int rank, arma::mat& dist_mat);
+void communicate_distance_matrix(const int rank, arma::mat &dist_mat);
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     int size, rank, len;
     char hostname[MPI_MAX_PROCESSOR_NAME];
@@ -86,17 +84,12 @@ int main(int argc, char* argv[])
     // const double shift_prop = 0.1;
     */
 
-    const Evolution_Parameters evol_params({data["number_of_generations"],
-                                            data["population_size"],
-                                            data["number_of_contacts"],
-                                            data["n_transfer_elements"],
-                                            data["initial_shuffling"],
-                                            data["selection_coeff"]});
+    const Evolution_Parameters evol_params({data["number_of_generations"], data["population_size"],
+                                            data["number_of_contacts"], data["n_transfer_elements"],
+                                            data["initial_shuffling"], data["selection_coeff"]});
 
-    const Mutation_Probabilities probs({data["crossover_probability"],
-                                        data["swap_probability"],
-                                        data["permutate_probability"],
-                                        data["inverse_probability"],
+    const Mutation_Probabilities probs({data["crossover_probability"], data["swap_probability"],
+                                        data["permutate_probability"], data["inverse_probability"],
                                         data["shift_probability"]});
 
     // Using printf to avoid buffering problems, in fact printf writes atomically.
@@ -127,13 +120,13 @@ int main(int argc, char* argv[])
     population.shift_prop(probs.shift_prob);
 
     // Checking for health
-    for (auto& pop : population)
+    for (auto &pop : population)
     {
         assert(pop.check_health() && "Found ill vector\n");
     }
 
     // Initial shuffling
-    for (auto& element : population)
+    for (auto &element : population)
     {
         for (unsigned int i = 0; i < evol_params.initial_shuffling; i++)
         {
@@ -141,8 +134,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::printf(
-        "Rank %d => Population initialized, RNG initialized\nStarting Evolution\n", rank);
+    std::printf("Rank %d => Population initialized, RNG initialized\nStarting Evolution\n", rank);
 
     std::ofstream gen_report("gen_report_thread_" + std::to_string(rank) + ".csv");
     gen_report << "Generation,Cost,Sequence\n";
@@ -159,9 +151,8 @@ int main(int argc, char* argv[])
 
             // Reporting Best for this generation
             population.sort_population(distance_matrix);
-            gen_report << i + evol_params.N_GEN * n << ','
-                       << population.begin()->cost(distance_matrix) << ",\"";
-            for (auto& gen : *population.begin())
+            gen_report << i + evol_params.N_GEN * n << ',' << population.begin()->cost(distance_matrix) << ",\"";
+            for (auto &gen : *population.begin())
             {
                 gen_report << static_cast<uint16_t>(gen) << ' ';
             }
@@ -170,8 +161,7 @@ int main(int argc, char* argv[])
 
         // Transfering Best of each continent to all other continents
         auto initial_pos = population.begin();
-        std::vector<uint8_t> best_el(initial_pos->size()
-                                     * evol_params.N_TRANSFER_ELEMENTS);
+        std::vector<uint8_t> best_el(initial_pos->size() * evol_params.N_TRANSFER_ELEMENTS);
 
         for (size_t i = 0; i < evol_params.N_TRANSFER_ELEMENTS; i++)
         {
@@ -181,24 +171,16 @@ int main(int argc, char* argv[])
             }
         }
 
-        std::vector<uint8_t> receiver(initial_pos->size()
-                                      * evol_params.N_TRANSFER_ELEMENTS * size);
+        std::vector<uint8_t> receiver(initial_pos->size() * evol_params.N_TRANSFER_ELEMENTS * size);
 
         // Contact between continents
-        MPI_Allgather(best_el.data(),
-                      best_el.size(),
-                      MPI_UINT8_T,
-                      receiver.data(),
-                      best_el.size(),
-                      MPI_UINT8_T,
+        MPI_Allgather(best_el.data(), best_el.size(), MPI_UINT8_T, receiver.data(), best_el.size(), MPI_UINT8_T,
                       MPI_COMM_WORLD);
 
-        auto copying_pos
-            = population.end() - (evol_params.N_TRANSFER_ELEMENTS * (size - 1));
+        auto copying_pos = population.end() - (evol_params.N_TRANSFER_ELEMENTS * (size - 1));
         size_t counter = 0;
 
-        for (size_t provenience = 0; provenience < static_cast<size_t>(size);
-             provenience++)
+        for (size_t provenience = 0; provenience < static_cast<size_t>(size); provenience++)
         {
             if (provenience == static_cast<size_t>(rank)) // Do not copy your datas
             {
@@ -210,9 +192,8 @@ int main(int argc, char* argv[])
             {
                 for (size_t j = 0; j < copying_pos->size(); j++)
                 {
-                    (*(copying_pos + counter * evol_params.N_TRANSFER_ELEMENTS + i))[j]
-                        = receiver[counter * N_PROV * evol_params.N_TRANSFER_ELEMENTS
-                                   + i * N_PROV + j];
+                    (*(copying_pos + counter * evol_params.N_TRANSFER_ELEMENTS + i))[j] =
+                        receiver[counter * N_PROV * evol_params.N_TRANSFER_ELEMENTS + i * N_PROV + j];
                 }
             }
             counter++;
@@ -232,9 +213,9 @@ int main(int argc, char* argv[])
 
         // Reporting Best for this generation
         population.sort_population(distance_matrix);
-        gen_report << i + evol_params.N_GEN * evol_params.N_CONTACTS << ','
-                   << population.begin()->cost(distance_matrix) << ",\"";
-        for (auto& gen : *population.begin())
+        gen_report << i + evol_params.N_GEN * evol_params.N_CONTACTS << ',' << population.begin()->cost(distance_matrix)
+                   << ",\"";
+        for (auto &gen : *population.begin())
         {
             gen_report << static_cast<uint16_t>(gen) << ' ';
         }
@@ -244,9 +225,7 @@ int main(int argc, char* argv[])
 
     // population.sort_population(distance_matrix);
 
-    std::printf("Rank %d => Evolution Ended\nBest is : %f\n",
-                rank,
-                population.begin()->cost(distance_matrix));
+    std::printf("Rank %d => Evolution Ended\nBest is : %f\n", rank, population.begin()->cost(distance_matrix));
 
     // Getting Best of each continent comparing and then outputting best of all
 
@@ -264,14 +243,8 @@ int main(int argc, char* argv[])
         // ss << " : Sending my best\n";
     }
 
-    MPI_Gather(population.begin()->data(),
-               N_PROV,
-               MPI_UINT8_T,
-               recv_best_vec.data(),
-               population.begin()->size(),
-               MPI_UINT8_T,
-               MASTER,
-               MPI_COMM_WORLD);
+    MPI_Gather(population.begin()->data(), N_PROV, MPI_UINT8_T, recv_best_vec.data(), population.begin()->size(),
+               MPI_UINT8_T, MASTER, MPI_COMM_WORLD);
 
     if (rank == MASTER)
     {
@@ -280,7 +253,7 @@ int main(int argc, char* argv[])
         //           << "Calculating best\n";
 
         size_t counter = 0;
-        for (auto& pop : best_pop)
+        for (auto &pop : best_pop)
         {
             for (size_t i = 0; i < N_PROV; i++)
             {
@@ -300,8 +273,7 @@ int main(int argc, char* argv[])
 
         if (!foff)
         {
-            std::cerr << "Rank :" << std::setw(3) << rank
-                      << "Could not open file, Aborting\n";
+            std::cerr << "Rank :" << std::setw(3) << rank << "Could not open file, Aborting\n";
             exit(-3);
         }
 
@@ -315,8 +287,7 @@ int main(int argc, char* argv[])
             foff << idx << ',' << name << ',' << longitude << ',' << latitude << '\n';
         }
         foff.close();
-        std::printf(
-            "Rank %d => Absolute best is : %f\n", rank, best.cost(distance_matrix));
+        std::printf("Rank %d => Absolute best is : %f\n", rank, best.cost(distance_matrix));
         // std::cout << "Rank : " << std::setw(3) << rank
         //           << " : Absolute best is : " << best.cost(distance_matrix) << '\n';
     }
@@ -329,32 +300,22 @@ void Evolution_Parameters::print(const int rank) const
 {
     std::printf("Rank %d => Population Size is %lu\n", rank, POP_SIZE);
     std::printf("Rank %d => Number of generation to evolve : %lu\n", rank, N_GEN);
-    std::printf(
-        "Rank %d => Number of contacts between continents : %lu\n", rank, N_CONTACTS);
-    std::printf("Rank %d => Number of elements to transfer for continent : %lu\n",
-                rank,
-                N_TRANSFER_ELEMENTS);
-    std::printf("Rank %d => Number of shuffle to generate population : %u\n",
-                rank,
-                initial_shuffling);
+    std::printf("Rank %d => Number of contacts between continents : %lu\n", rank, N_CONTACTS);
+    std::printf("Rank %d => Number of elements to transfer for continent : %lu\n", rank, N_TRANSFER_ELEMENTS);
+    std::printf("Rank %d => Number of shuffle to generate population : %u\n", rank, initial_shuffling);
     std::printf("Rank %d => Selection Coefficent : %.2f\n", rank, selection_coeff);
 }
 
 void Mutation_Probabilities::print(const int rank) const
 {
-    std::printf(
-        "Rank %d => Probability of crossover : %.2f\n", rank, crossover_prob * 100.);
+    std::printf("Rank %d => Probability of crossover : %.2f\n", rank, crossover_prob * 100.);
     std::printf("Rank %d => Probability of swap : %.2f\n", rank, swap_prob * 100.);
-    std::printf(
-        "Rank %d => Probability of permutation : %.2f\n", rank, permutate_prob * 100.);
-    std::printf(
-        "Rank %d => Probability of Inversion : %.2f\n", rank, inverse_prob * 100.);
+    std::printf("Rank %d => Probability of permutation : %.2f\n", rank, permutate_prob * 100.);
+    std::printf("Rank %d => Probability of Inversion : %.2f\n", rank, inverse_prob * 100.);
     std::printf("Rank %d => Probability of shift : %.2f\n", rank, shift_prob * 100.);
 }
 
-arma::mat load_distance_matrix(const int rank,
-                               std::vector<arma::vec2>& prov_pos,
-                               std::vector<std::string>& prov_name)
+arma::mat load_distance_matrix(const int rank, std::vector<arma::vec2> &prov_pos, std::vector<std::string> &prov_name)
 {
     arma::mat distance_matrix;
     if (rank == MASTER)
@@ -373,10 +334,7 @@ arma::mat load_distance_matrix(const int rank,
         }
 
         distance_matrix = create_matrix(prov_pos);
-        std::printf("Rank %d => Matrix Shape is : %llu x %llu\n",
-                    rank,
-                    distance_matrix.n_rows,
-                    distance_matrix.n_cols);
+        std::printf("Rank %d => Matrix Shape is : %llu x %llu\n", rank, distance_matrix.n_rows, distance_matrix.n_cols);
     }
     else
     {
@@ -386,7 +344,7 @@ arma::mat load_distance_matrix(const int rank,
     return distance_matrix;
 }
 
-void communicate_distance_matrix(const int rank, arma::mat& distance_matrix)
+void communicate_distance_matrix(const int rank, arma::mat &distance_matrix)
 { // Creating a scope to have a temporary vector to be killed after going out of scope
     std::printf("Rank %d => Before Transfer %f\n", rank, distance_matrix(1, 0));
 
@@ -402,8 +360,7 @@ void communicate_distance_matrix(const int rank, arma::mat& distance_matrix)
         }
     }
 
-    MPI_Bcast(
-        data_transfer.data(), data_transfer.size(), MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Bcast(data_transfer.data(), data_transfer.size(), MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
     if (rank != MASTER)
     {

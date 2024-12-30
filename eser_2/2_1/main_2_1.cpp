@@ -23,22 +23,22 @@ int main()
 
     // File output
     std::ofstream f_out("uniform.csv");
-    for (auto&& val : v_uniform)
+    for (auto &&val : v_uniform)
     {
         f_out << val << "\n";
     }
     f_out.close();
 
-    // 2_1_2, calculate using importance sampling, on top of that I used antithetic integrand, combined with accept reject for extracting numbers
-    std::vector v_precise = integrator.calculate_dist_rng_block(a, b, 100,
-                                                                integrand_precise,
-                                                                [&]()
-                                                                { return rng.AcceptReject(a, b, integrand_anti_expansion_max(), integrand_anti_expansion_norm); });
+    // 2_1_2, calculate using importance sampling, on top of that I used antithetic integrand, combined with accept
+    // reject for extracting numbers
+    std::vector v_precise = integrator.calculate_dist_rng_block(a, b, 100, integrand_precise, [&]() {
+        return rng.AcceptReject(a, b, integrand_anti_expansion_max(), integrand_anti_expansion_norm);
+    });
     // Lambda function are useful in this context.
 
     // File output
     f_out.open("precise.csv");
-    for (auto&& val : v_precise)
+    for (auto &&val : v_precise)
     {
         f_out << val << "\n";
     }

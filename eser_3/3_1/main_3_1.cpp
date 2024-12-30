@@ -1,7 +1,7 @@
-#include <vector>
-#include <iostream>
-#include <iomanip>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <vector>
 
 #include "finanza.h"
 #include "random.h"

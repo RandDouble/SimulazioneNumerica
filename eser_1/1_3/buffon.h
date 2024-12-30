@@ -29,12 +29,21 @@ private:
 
 public:
     Buffon() = default;
-    Buffon(double L, double d, int n_section, Random *rng) : m_L{L}, m_d{d}, m_n_section{n_section}, m_rng(rng) { ; }
+    Buffon(double L, double d, int n_section, Random *rng) : m_L{L}, m_d{d}, m_n_section{n_section}, m_rng(rng)
+    {
+        ;
+    }
 
     // ~Buffon() { delete m_rng; }
 
-    void set_rng(Random *rng) { m_rng = rng; }
-    int get_intersection() const { return m_intersect; }
+    void set_rng(Random *rng)
+    {
+        m_rng = rng;
+    }
+    int get_intersection() const
+    {
+        return m_intersect;
+    }
 
     /// @brief Use Random Number generator to extract starting position form 0 to n_section * d
     /// @return starting position form 0 to n_section * d

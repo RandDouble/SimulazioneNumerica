@@ -12,33 +12,38 @@
 
 int main()
 {
+    // Loading Simulation Options
     std::ifstream config_file("config.jsonc");
     Options opt;
     file_parser(config_file, opt);
     config_file.close();
-    std::ofstream output, output_info;
 
+    // Sampler
     generator_func generator = opt.generator[opt.new_pos_generator];
 
+    // Initialize Metropolis Random Number Generator
     Metropolis metr;
     initializer(*(metr.get_rng_ptr()), opt.first_initializer_row);
+
+    Random rng;
+    initializer(rng, opt.second_initializer_row);
+
+    // Movement Parameters
+    const double delta = opt.delta;
+    const Vector3D start_pos = opt.start_pos;
+
+    // Initialing Blocks
+    const std::size_t n_block = opt.n_block;
+    std::vector v_mean_r(n_block, 0.);
+    std::vector<values> v_radius(n_block, {0., 0.});
 
     std::cout << "Nr Blocks : " << opt.n_block << '\n'
               << "Nr Block Steps : " << opt.n_block_step << '\n'
               << "Nr Particle Step : " << opt.n_particle_step << '\n'
               << "Nr Thermalization Steps : " << opt.n_thermalization_step << '\n';
 
-    const std::size_t n_block = opt.n_block;
-    std::vector v_mean_r(n_block, 0.);
-    std::vector<values> v_radius(n_block, {0., 0.});
-
-    Random rng;
-    initializer(rng, opt.second_initializer_row);
-
-    const double delta = opt.delta;
-
-    const Vector3D start_pos = opt.start_pos;
-
+    // Output Report Files
+    std::ofstream output, output_info;
     if (opt.output_file)
     {
         output.open("output.csv");
@@ -52,8 +57,7 @@ int main()
     // Thermalization
     auto current_pos = start_pos;
     metr.set_n_step(opt.n_thermalization_step);
-    current_pos = metr.generate<Vector3D>(
-        current_pos, opt.convert[opt.func], [&] { return generator(&rng, delta); });
+    current_pos = metr.generate<Vector3D>(current_pos, opt.convert[opt.func], [&] { return generator(&rng, delta); });
 
     // Main Loop
     metr.set_n_step(opt.n_particle_step);
@@ -63,11 +67,10 @@ int main()
 
         std::vector v_instant_pos(opt.n_block_step, 0.);
 
-        for (auto& instant_pos : v_instant_pos)
+        for (auto &instant_pos : v_instant_pos)
         {
-            current_pos = metr.generate<Vector3D>(current_pos,
-                                                  opt.convert[opt.func],
-                                                  [&] { return generator(&rng, delta); });
+            current_pos =
+                metr.generate<Vector3D>(current_pos, opt.convert[opt.func], [&] { return generator(&rng, delta); });
             instant_pos = current_pos.distance();
         }
 

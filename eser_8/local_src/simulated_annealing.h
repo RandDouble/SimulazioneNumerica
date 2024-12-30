@@ -40,25 +40,14 @@ private:
     double scaling_movement_law() const;
 
 public:
-    SimulatedAnnealing(const double starting_temperature,
-                       const double ending_temperature,
-                       const size_t n_temp_step,
-                       const size_t n_tempering_step,
-                       const double integration_delta,
-                       const PsiParam& delta_move,
-                       const PsiParam& parameter_reduction_rate,
-                       const PsiParam& wave_param) :
-        integration_delta(integration_delta),
-        n_temp_step(n_temp_step),
-        n_tempering_step(n_tempering_step),
-        m_actual_beta{(1. / starting_temperature)},
-        delta_move(delta_move),
-        // cooling_rate((starting_temperature - ending_temperature) / n_temp_step),
-        m_cooling_rate(
-            std::pow(ending_temperature / starting_temperature, 1. / n_temp_step)),
-        m_reduction_rate(parameter_reduction_rate),
-        m_sampler(0.),
-        m_wave(wave_param)
+    SimulatedAnnealing(const double starting_temperature, const double ending_temperature, const size_t n_temp_step,
+                       const size_t n_tempering_step, const double integration_delta, const PsiParam &delta_move,
+                       const PsiParam &parameter_reduction_rate, const PsiParam &wave_param)
+        : integration_delta(integration_delta), n_temp_step(n_temp_step), n_tempering_step(n_tempering_step),
+          m_actual_beta{(1. / starting_temperature)}, delta_move(delta_move),
+          // cooling_rate((starting_temperature - ending_temperature) / n_temp_step),
+          m_cooling_rate(std::pow(ending_temperature / starting_temperature, 1. / n_temp_step)),
+          m_reduction_rate(parameter_reduction_rate), m_sampler(0.), m_wave(wave_param)
     {
         assert(!std::isinf(starting_temperature) && "Starting temperature is infinite");
         assert(!std::isinf(ending_temperature) && "Ending temperature is infinite");
@@ -68,12 +57,30 @@ public:
         assert(!std::isnan(m_cooling_rate) && "Cooling rate is NaN");
     }
 
-    void set_metropolis_step(const size_t n_step) { monte_carlo_step = n_step; }
-    void set_metropolis_block(const size_t n_block) { monte_carlo_block = n_block; }
-    double get_monte_carlo_acceptance() const { return m_sampler.get_acceptance(); }
-    PsiParam get_params() const { return m_wave.param(); }
-    double get_temperature() const { return 1. / m_actual_beta; }
-    double get_beta() const { return m_actual_beta; }
+    void set_metropolis_step(const size_t n_step)
+    {
+        monte_carlo_step = n_step;
+    }
+    void set_metropolis_block(const size_t n_block)
+    {
+        monte_carlo_block = n_block;
+    }
+    double get_monte_carlo_acceptance() const
+    {
+        return m_sampler.get_acceptance();
+    }
+    PsiParam get_params() const
+    {
+        return m_wave.param();
+    }
+    double get_temperature() const
+    {
+        return 1. / m_actual_beta;
+    }
+    double get_beta() const
+    {
+        return m_actual_beta;
+    }
 
     void initialize_rng(size_t rows_to_skip = 0ull);
 
@@ -82,7 +89,7 @@ public:
 
     values evaluate_energy(const double x_start);
 
-    void write_results(const std::string& filename);
+    void write_results(const std::string &filename);
     void save_seed();
 };
 

@@ -12,8 +12,7 @@
 #ifndef __MUTATIONS__
 #define __MUTATIONS__
 
-template <std::size_t SIZE>
-class Individual
+template <std::size_t SIZE> class Individual
 {
 private:
     std::array<uint8_t, SIZE> m_DNA;
@@ -24,37 +23,69 @@ public:
         std::iota(m_DNA.begin(), m_DNA.end(), 0);
     }
 
-    Individual(Individual<SIZE>& other) { std::copy(other.m_DNA.begin(), other.m_DNA.end(), m_DNA.begin()); }
-    Individual(Individual<SIZE>&& other) : m_DNA(std::move(other.m_DNA)) { ; }
+    Individual(Individual<SIZE> &other)
+    {
+        std::copy(other.m_DNA.begin(), other.m_DNA.end(), m_DNA.begin());
+    }
+    Individual(Individual<SIZE> &&other) : m_DNA(std::move(other.m_DNA))
+    {
+        ;
+    }
 
-    template <typename... T>
-    Individual(T&&... l) : m_DNA{{static_cast<uint8_t>(std::forward<T>(l))...}} { ; }
+    template <typename... T> Individual(T &&...l) : m_DNA{{static_cast<uint8_t>(std::forward<T>(l))...}}
+    {
+        ;
+    }
 
-    Individual<SIZE>& operator=(Individual<SIZE>& other)
+    Individual<SIZE> &operator=(Individual<SIZE> &other)
     {
         std::copy(other.m_DNA.begin(), other.m_DNA.end(), m_DNA.begin());
         return *this;
     }
 
-    Individual<SIZE>& operator=(Individual<SIZE>&& other)
+    Individual<SIZE> &operator=(Individual<SIZE> &&other)
     {
         m_DNA = std::move(other.m_DNA);
         return *this;
     }
 
-    constexpr decltype(m_DNA.begin()) begin() { return m_DNA.begin(); }
-    constexpr decltype(m_DNA.end()) end() { return m_DNA.end(); }
+    constexpr decltype(m_DNA.begin()) begin()
+    {
+        return m_DNA.begin();
+    }
+    constexpr decltype(m_DNA.end()) end()
+    {
+        return m_DNA.end();
+    }
 
-    constexpr decltype(m_DNA.cbegin()) begin() const { return m_DNA.cbegin(); }
-    constexpr decltype(m_DNA.cend()) end() const { return m_DNA.cend(); }
+    constexpr decltype(m_DNA.cbegin()) begin() const
+    {
+        return m_DNA.cbegin();
+    }
+    constexpr decltype(m_DNA.cend()) end() const
+    {
+        return m_DNA.cend();
+    }
 
-    constexpr decltype(m_DNA.cbegin()) cbegin() const { return m_DNA.cbegin(); }
-    constexpr decltype(m_DNA.cend()) cend() const { return m_DNA.cend(); }
+    constexpr decltype(m_DNA.cbegin()) cbegin() const
+    {
+        return m_DNA.cbegin();
+    }
+    constexpr decltype(m_DNA.cend()) cend() const
+    {
+        return m_DNA.cend();
+    }
 
-    uint8_t operator[](const std::size_t idx) const { return m_DNA[idx]; }
-    uint8_t& operator[](const std::size_t idx) { return m_DNA[idx]; }
+    uint8_t operator[](const std::size_t idx) const
+    {
+        return m_DNA[idx];
+    }
+    uint8_t &operator[](const std::size_t idx)
+    {
+        return m_DNA[idx];
+    }
 
-    void pair_permutation(Random& rng)
+    void pair_permutation(Random &rng)
     {
         // Choosing random indexes
 
@@ -66,7 +97,7 @@ public:
         std::swap(m_DNA[idx_1], m_DNA[idx_2]);
     }
 
-    void shift_block(Random& rng)
+    void shift_block(Random &rng)
     {
         std::size_t start_idx = rng.Ranint(1, SIZE);
         std::size_t middle_idx = start_idx + rng.Ranint(1, SIZE - 1);
@@ -85,11 +116,12 @@ public:
         PBC_swap::rotate<SIZE>(m_DNA.begin(), start_idx, middle_idx, end_idx, 1);
     }
 
-    void permutate_contiguos(Random& rng)
+    void permutate_contiguos(Random &rng)
     {
         std::size_t m_contiguos = rng.Ranint(1, SIZE / 2);
-        std::size_t first_pos_idx = rng.Ranint(1, SIZE);                                          // Selected in the first half - m_contiguos
-        std::size_t second_pos_idx = first_pos_idx + rng.Ranint(m_contiguos, SIZE - m_contiguos); // Select in second half - m_contiguos
+        std::size_t first_pos_idx = rng.Ranint(1, SIZE); // Selected in the first half - m_contiguos
+        std::size_t second_pos_idx =
+            first_pos_idx + rng.Ranint(m_contiguos, SIZE - m_contiguos); // Select in second half - m_contiguos
         // auto first_position = m_DNA.begin() + first_pos_idx;
         // auto second_position = m_DNA.begin() + second_pos_idx;
 
@@ -97,7 +129,7 @@ public:
         PBC_swap::swap_ranges<SIZE>(m_DNA.begin(), first_pos_idx, second_pos_idx, m_contiguos, 1);
     }
 
-    void inversion(Random& rng)
+    void inversion(Random &rng)
     {
         auto inversion_lenght = rng.Ranint(2, SIZE);
         auto idx_start_inversion = rng.Ranint(1, SIZE);
@@ -112,7 +144,7 @@ public:
         PBC_swap::reverse<SIZE>(m_DNA.begin(), idx_start_inversion, idx_start_inversion + inversion_lenght, 1);
     }
 
-    void crossover(Individual& mother, Individual& daughter, Individual& son, Random& rng)
+    void crossover(Individual &mother, Individual &daughter, Individual &son, Random &rng)
     {
 #ifdef TEST_ENV
         auto cut_position = 3;
@@ -160,12 +192,13 @@ public:
         return result;
     }
 
-    double cost(const std::array<arma::vec2, SIZE>& positions) const
+    double cost(const std::array<arma::vec2, SIZE> &positions) const
     {
         double acc = 0.;
         for (size_t i = 0; i < SIZE; i++)
         {
-            arma::vec2 difference = positions[m_DNA[PBC_swap::PBC<SIZE>(i + 1)]] - positions[m_DNA[PBC_swap::PBC<SIZE>(i)]];
+            arma::vec2 difference =
+                positions[m_DNA[PBC_swap::PBC<SIZE>(i + 1)]] - positions[m_DNA[PBC_swap::PBC<SIZE>(i)]];
             // std::cout << '(' << PBC_swap::PBC<SIZE>(i)<< ',' << PBC_swap::PBC<SIZE>(i+1) << ")  ";
             acc += arma::norm(difference);
         }

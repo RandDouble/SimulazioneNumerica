@@ -9,7 +9,7 @@ void SimulatedAnnealing::initialize_rng(std::size_t rows_to_skip)
     m_sampler.set_n_step(1); // We want montecarlo to generate a step at time
 }
 
-void SimulatedAnnealing::write_results(const std::string& filename)
+void SimulatedAnnealing::write_results(const std::string &filename)
 {
     std::ofstream file(filename);
     file << param_history.rdbuf();
@@ -41,8 +41,7 @@ size_t SimulatedAnnealing::tempering_cycle()
         assert(!std::isnan(new_energy.value) && "New energy is NaN");
         assert(!std::isinf(new_energy.value) && "New energy is Infinite");
 
-        const double delta_e
-            = new_energy.value - old_energy.value; // Calculate energy difference
+        const double delta_e = new_energy.value - old_energy.value; // Calculate energy difference
 
         assert(!std::isnan(delta_e) && "Delta energy is NaN");
         if (m_sampler.get_rng_ptr()->Rannyu() < boltzmann_weight(delta_e))
@@ -63,12 +62,11 @@ size_t SimulatedAnnealing::tempering_cycle()
         }
 
 #ifndef CHECK_TEMPERING_MOVEMENT
-        std::cout << "Current Energy" << std::setw(8) << old_energy.value << " +- "
-                  << std::setw(8) << old_energy.error << '\n';
+        std::cout << "Current Energy" << std::setw(8) << old_energy.value << " +- " << std::setw(8) << old_energy.error
+                  << '\n';
 #endif // CHECK_TEMPERING_MOVEMENT
 
-        param_history << get_temperature() << ',' << m_wave.mu() << ',' << m_wave.sigma()
-                      << ',' << old_energy << '\n';
+        param_history << get_temperature() << ',' << m_wave.mu() << ',' << m_wave.sigma() << ',' << old_energy << '\n';
     }
     return accepted_temp_step;
 }
@@ -81,8 +79,8 @@ void SimulatedAnnealing::temperature_cycle()
 
     for (unsigned int i = 0; i <= n_temp_step; i++)
     {
-        std::cout << "Actual Temp : " << std::setw(5) << get_temperature()
-                  << " Actual Beta : " << std::setw(5) << get_beta() << '\n';
+        std::cout << "Actual Temp : " << std::setw(5) << get_temperature() << " Actual Beta : " << std::setw(5)
+                  << get_beta() << '\n';
         size_t accepted_temp_step = tempering_cycle();
         std::cout << "\nAccepted Step : " << std::setw(4) << accepted_temp_step << '\n';
         if (i == n_temp_step)
@@ -105,8 +103,7 @@ values SimulatedAnnealing::evaluate_energy(const double x_start)
     m_sampler.set_n_step(1);
 
     auto translation = [&]() {
-        return m_sampler.get_rng_ptr()->Rannyu(-scaling_movement_law(),
-                                               scaling_movement_law());
+        return m_sampler.get_rng_ptr()->Rannyu(-scaling_movement_law(), scaling_movement_law());
     };
 
     auto PDF = [&](double x) { return m_wave.PDF(x); };
@@ -114,10 +111,10 @@ values SimulatedAnnealing::evaluate_energy(const double x_start)
     m_sampler.set_current_position(x_start);
     double x_i = x_start;
 
-    for (auto&& block : block_result)
+    for (auto &&block : block_result)
     {
         std::vector partial_result(monte_carlo_step, 0.);
-        for (auto& partial : partial_result)
+        for (auto &partial : partial_result)
         {
 #ifndef CHECK_MONTECARLO_MOVEMENT
             double x_old = x_i;
@@ -135,8 +132,7 @@ values SimulatedAnnealing::evaluate_energy(const double x_start)
         assert(!std::isinf(block) && "Block is Infinite");
     }
 #ifndef CHECK_MONTECARLO_MOVEMENT
-    std::cout << "Montecarlo acceptance : " << acceptance * weight / monte_carlo_block
-              << '\n';
+    std::cout << "Montecarlo acceptance : " << acceptance * weight / monte_carlo_block << '\n';
 #endif // CHECK_MONTECARLO_MOVEMENT
 
     values result{.value = calc_mean(block_result), .error = calc_std(block_result)};
@@ -178,8 +174,7 @@ void SimulatedAnnealing::update_temperature()
 
     delta_move.mu -= m_reduction_rate.mu;
     delta_move.sigma -= m_reduction_rate.sigma;
-    std::cout << "New delta mu : " << delta_move.mu
-              << " New delta sigma : " << delta_move.sigma << '\n';
+    std::cout << "New delta mu : " << delta_move.mu << " New delta sigma : " << delta_move.sigma << '\n';
 }
 
 PsiParam SimulatedAnnealing::propose_new_param()
@@ -188,8 +183,7 @@ PsiParam SimulatedAnnealing::propose_new_param()
     PsiParam new_param = m_wave.param();
 
     new_param.mu += m_sampler.get_rng_ptr()->Rannyu(-delta_move.mu, delta_move.mu);
-    new_param.sigma
-        += m_sampler.get_rng_ptr()->Rannyu(-delta_move.sigma, delta_move.sigma);
+    new_param.sigma += m_sampler.get_rng_ptr()->Rannyu(-delta_move.sigma, delta_move.sigma);
 
     assert(!std::isinf(new_param.mu) && "mu is infinite");
     assert(!std::isinf(new_param.sigma) && "sigma is infinite");

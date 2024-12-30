@@ -12,16 +12,14 @@
 #ifndef __INITIALIZER__
 #define __INITIALIZER__
 
-template <typename T = uint8_t, std::size_t SIZE>
-std::array<T, SIZE> create_array()
+template <typename T = uint8_t, std::size_t SIZE> std::array<T, SIZE> create_array()
 {
     std::array<T, SIZE> result;
     std::iota(result.begin(), result.end(), 0);
     return result;
 }
 
-template <std::size_t SIZE>
-std::array<arma::vec2, SIZE> circle_initializer()
+template <std::size_t SIZE> std::array<arma::vec2, SIZE> circle_initializer()
 {
     std::array<arma::vec2, SIZE> result;
 
@@ -33,11 +31,10 @@ std::array<arma::vec2, SIZE> circle_initializer()
     return result;
 }
 
-template <std::size_t SIZE>
-std::array<arma::vec2, SIZE> square_initializer(Random& rng)
+template <std::size_t SIZE> std::array<arma::vec2, SIZE> square_initializer(Random &rng)
 {
     std::array<arma::vec2, SIZE> elements;
-    for (auto& el : elements)
+    for (auto &el : elements)
     {
         el = {rng.Rannyu(-1., 1.), rng.Rannyu(-1., 1.)};
     }
@@ -65,23 +62,20 @@ std::size_t PBC(const std::size_t SIZE, std::size_t idx)
     return idx;
 }
 
-template <typename T>
-struct print_vector
+template <typename T> struct print_vector
 {
-    template <typename iterable, int WIDTH = 8>
-    void operator()(const iterable& iter)
+    template <typename iterable, int WIDTH = 8> void operator()(const iterable &iter)
     {
-        for (const T& el : iter)
+        for (const T &el : iter)
         {
             std::cout << std::setw(WIDTH) << el << " ";
         }
         std::cout << "\n";
     }
 
-    template <typename iterable>
-    void operator()(const iterable& iter, const int width)
+    template <typename iterable> void operator()(const iterable &iter, const int width)
     {
-        for (const T& el : iter)
+        for (const T &el : iter)
         {
             std::cout << std::setw(width) << el << " ";
         }
@@ -89,32 +83,25 @@ struct print_vector
     }
 };
 
-template <>
-struct print_vector<uint8_t>
+template <> struct print_vector<uint8_t>
 {
-    template <typename iterable, int WIDTH = 3>
-    void operator()(const iterable& iter)
+    template <typename iterable, int WIDTH = 3> void operator()(const iterable &iter)
     {
-        for (const uint8_t& el : iter)
+        for (const uint8_t &el : iter)
         {
             std::cout << std::setw(WIDTH) << static_cast<int>(el) << " ";
         }
         std::cout << "\n";
     }
 
-    template <typename iterable>
-    void operator()(const iterable& iter, const int width)
+    template <typename iterable> void operator()(const iterable &iter, const int width)
     {
-        for (const uint8_t& el : iter)
+        for (const uint8_t &el : iter)
         {
             std::cout << std::setw(width) << static_cast<int>(el) << " ";
         }
         std::cout << "\n";
     }
 };
-
-
-
-
 
 #endif // __INITIALIZER__

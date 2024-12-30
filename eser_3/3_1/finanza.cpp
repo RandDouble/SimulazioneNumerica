@@ -1,6 +1,5 @@
 #include "finanza.h"
 
-
 double FinancialOption::call_option_price_conv(double ending_price) const
 {
     const double discount = std::exp(-m_r * m_T);

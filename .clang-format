@@ -1,49 +1,56 @@
 ---
-BasedOnStyle: LLVM
+BasedOnStyle: Microsoft
 UseTab: Never
 IndentWidth: 4
 TabWidth: 4
-AllowShortIfStatementsOnASingleLine: false
-IndentCaseLabels: false
-ColumnLimit: 0
+# AllowShortIfStatementsOnASingleLine: false
+# IndentCaseLabels: false
+# ColumnLimit: 0
 AccessModifierOffset: -4
-NamespaceIndentation: All
-FixNamespaceComments: false
+# NamespaceIndentation: All
+# FixNamespaceComments: false
 ---
 Language: Cpp
 Standard: c++17
-SortIncludes : true
+SortIncludes: true
+AlignArrayOfStructures: Right
 # Force pointers to the type
-DerivePointerAlignment: false
-PointerAlignment: Left
-ReferenceAlignment: Left
-BreakBeforeBraces: Custom
-BraceWrapping:
-  AfterCaseLabel:  false
-  AfterClass:      true
-  AfterControlStatement: Always
-  AfterEnum:       true
-  AfterExternBlock: true
-  AfterFunction:   true
-  AfterNamespace:  true
-  AfterObjCDeclaration: true
-  AfterStruct:     true
-  AfterUnion:      true
-  BeforeCatch:     false
-  BeforeElse:      true
-  BeforeLambdaBody: false
-  BeforeWhile:     false
-  IndentBraces:    false
-  SplitEmptyRecord: true
-  SplitEmptyNamespace: false
-  SplitEmptyFunction: false
-AlignOperands: AlignAfterOperator
-BreakBeforeBinaryOperators: true
-# Function Arguments
-BinPackArguments : false
-BinPackParameters : false
-# Constructor Initializer List
-PackConstructorInitializers: CurrentLine
-BreakConstructorInitializers : AfterColon
-AlwaysBreakTemplateDeclarations: Yes
-ColumnLimit: 90
+# DerivePointerAlignment: false
+# PointerAlignment: Left
+# ReferenceAlignment: Left
+# BreakBeforeBraces: Custom
+# BraceWrapping:
+#   AfterCaseLabel: false
+#   AfterClass: true
+#   AfterControlStatement: Always
+#   AfterEnum: true
+#   AfterExternBlock: true
+#   AfterFunction: true
+#   AfterNamespace: true
+#   AfterObjCDeclaration: true
+#   AfterStruct: true
+#   AfterUnion: true
+#   BeforeCatch: false
+#   BeforeElse: true
+#   BeforeLambdaBody: false
+#   BeforeWhile: false
+#   IndentBraces: false
+#   SplitEmptyRecord: true
+#   SplitEmptyNamespace: false
+#   SplitEmptyFunction: false
+# AlignOperands: AlignAfterOperator
+# BreakBeforeBinaryOperators: true
+# # Function Arguments
+# BinPackArguments: false
+# BinPackParameters: false
+# # Constructor Initializer List
+# PackConstructorInitializers: CurrentLine
+# BreakConstructorInitializers: AfterColon
+# AlwaysBreakTemplateDeclarations: Yes
+# # Comments reflow
+# ReflowComments: true
+# AlignTrailingComment: true
+# PenaltyBreakComment: 100
+# PenaltyBreakOpenParenthesis: 1
+
+# ColumnLimit: 90

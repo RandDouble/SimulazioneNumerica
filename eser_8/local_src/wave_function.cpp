@@ -12,10 +12,8 @@ double WaveFunction::operator()(const double x) const
     assert(!std::isinf(std::exp(exponent)) && "Wavefunction exp is Infinite");
     assert(!std::isnan(std::cosh(cosh_arg)) && "Wavefunction cosh is NaN");
     assert(!std::isinf(std::cosh(cosh_arg)) && "Wavefunction cosh is Infinite");
-    assert(!std::isnan(2. * std::exp(exponent) * std::cosh(cosh_arg))
-           && "Wavefunction is NaN");
-    assert(!std::isinf(2. * std::exp(exponent) * std::cosh(cosh_arg))
-           && "Wavefunction is Infinite");
+    assert(!std::isnan(2. * std::exp(exponent) * std::cosh(cosh_arg)) && "Wavefunction is NaN");
+    assert(!std::isinf(2. * std::exp(exponent) * std::cosh(cosh_arg)) && "Wavefunction is Infinite");
 
     return 2. * std::exp(exponent) * std::cosh(cosh_arg);
 }
@@ -40,8 +38,7 @@ double WaveFunction::kinetic(const double x) const
 
     const double first_term = (x * x + mu() * mu()) * m_inv_sigma_squared - 1.;
     const double tanh_arg = mu() * x * m_inv_sigma_squared;
-    const double res
-        = m_inv_sigma_squared * (first_term - 2. * tanh_arg * std::tanh(tanh_arg));
+    const double res = m_inv_sigma_squared * (first_term - 2. * tanh_arg * std::tanh(tanh_arg));
 
     assert(!std::isnan(res) && "Kinetic energy is NaN");
     assert(!std::isinf(res) && "Kinetic energy is Infinite");
@@ -61,9 +58,7 @@ double WaveFunction::PDF(const double x) const
 
 double WaveFunction::normalized_PDF(const double x) const
 {
-    const double norm = 1.
-                      / (sigma() * std::sqrt(M_PI)
-                         * (1.0 + std::exp(-(mu() * mu()) * m_inv_sigma_squared)));
+    const double norm = 1. / (sigma() * std::sqrt(M_PI) * (1.0 + std::exp(-(mu() * mu()) * m_inv_sigma_squared)));
     const double exponent = -(x * x + mu() * mu()) * m_inv_sigma_squared;
     const double cosh_arg = 2. * mu() * x * m_inv_sigma_squared;
     if (exponent < -708.4) // Exp would underflow, so cut your losses

@@ -19,8 +19,10 @@
     the solid angle: $\theta \in [0,\pi]$ and $\phi \in [0,2\pi]$
  */
 
-std::vector<values> walking_the_walker_discrete(Random_Walk &dog, const std::size_t time_steps, const std::size_t n_throws, const std::size_t n_blocks);
-std::vector<values> walking_the_walker_continuos(Random_Walk &dog, const std::size_t time_steps, const std::size_t n_throws, const std::size_t n_blocks);
+std::vector<values> walking_the_walker_discrete(Random_Walk &dog, const std::size_t time_steps,
+                                                const std::size_t n_throws, const std::size_t n_blocks);
+std::vector<values> walking_the_walker_continuos(Random_Walk &dog, const std::size_t time_steps,
+                                                 const std::size_t n_throws, const std::size_t n_blocks);
 
 int main()
 {
@@ -75,7 +77,8 @@ int main()
     return 0;
 }
 
-std::vector<values> walking_the_walker_discrete(Random_Walk &dog, const std::size_t n_time_steps, const std::size_t n_runs, const std::size_t n_blocks)
+std::vector<values> walking_the_walker_discrete(Random_Walk &dog, const std::size_t n_time_steps,
+                                                const std::size_t n_runs, const std::size_t n_blocks)
 {
     const unsigned int throw_per_block = n_runs / n_blocks;
     std::vector res(n_time_steps + 1, values({0., 0.}));
@@ -99,7 +102,8 @@ std::vector<values> walking_the_walker_discrete(Random_Walk &dog, const std::siz
     return res;
 }
 
-std::vector<values> walking_the_walker_continuos(Random_Walk &dog, const std::size_t n_time_steps, const std::size_t n_runs, const std::size_t n_blocks)
+std::vector<values> walking_the_walker_continuos(Random_Walk &dog, const std::size_t n_time_steps,
+                                                 const std::size_t n_runs, const std::size_t n_blocks)
 {
     const unsigned int throw_per_block = n_runs / n_blocks;
 
