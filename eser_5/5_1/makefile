@@ -11,7 +11,7 @@ EXTERNAL_HEADER_FILE = json.hpp
 # Compiler and compiler flags
 # Default compiler is Clang++-19 with libc++ as standard library implementation
 INCFLAGS= -I../../src -I../../external_include
-CXXFLAGS= $(INCFLAGS) -g -Wall -Wextra -Werror -O2 -std=c++17 -DUSE_PARALLEL # -DNDEBUG
+CXXFLAGS= $(INCFLAGS) -g -Wall -Wextra -Werror -O3 -std=c++17 -DUSE_PARALLEL # -DNDEBUG
 # O2 because it can show more warning due to flow variable analisys
 # c++19 because it has some niceties, like in better algorithm and numeric, enabling parallelism
 

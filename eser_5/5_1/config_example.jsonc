@@ -1,0 +1,34 @@
+{
+    "blocks" : 20000,
+    "block_steps" : 1,
+    "particle_steps" : 1,
+    "thermalization_steps" : 50,
+    "delta" : 1.1,
+    "first_row_initializer" : 0,
+    "second_row_initializer" : 1,
+    "starting_position" : [ 0.0, 0.0, 0.0 ],
+    "output_file" : true,
+    "output_video" : false,
+    "info_file" : true,
+    "mean_radius_file" : false,
+    "reset" : false,
+    "wave_function" : "GROUND_STATE",
+    "generator" : "UNIFORM"
+}
+
+/*
+BLOCK_STEPS             1
+PARTICLE_STEPS          1
+THERMALIZATION_STEPS    50
+DELTA                   1.1 # (1.1 orbitale s),(2.5 orbitale p), (5.0 orbitale d)
+FIRST_ROW_INITIALIZER   0
+SECOND_ROW_INITIALIZER  1
+STARTING_POSITION       0.     0.      0.
+OUTPUT_FILE             1
+OUTPUT_VIDEO            0
+INFO_FILE               0
+MEAN_RADIUS_FILE        1
+RESET                   0
+WAVE_FUNCTION           GROUND_STATE
+GENERATOR               UNIFORM
+*/
