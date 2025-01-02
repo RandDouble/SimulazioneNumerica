@@ -18,6 +18,8 @@ NSL_SIMULATOR/INPUT/input.dat
 NSL_SIMULATOR/INPUT/CONFIG/velocities.in
 NSL_SIMULATOR/OUTPUT/seed.out
 
+eser_5/5_1/output/*
+
 **/kinetic_energy.dat
 **/output.dat
 **/potential_energy.dat
