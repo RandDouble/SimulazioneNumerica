@@ -52,6 +52,7 @@ int main()
     if (opt.output_info)
     {
         output_info.open("info.txt");
+        output_info << "Block,Acceptance\n";
     }
 
     // Thermalization
@@ -81,7 +82,7 @@ int main()
 
         if (opt.output_info)
         {
-            output_info << i << " : Acceptance : " << metr.get_acceptance() << '\n';
+            output_info << i << "," << metr.get_acceptance() << '\n';
         }
 
         v_mean_r[i] = calc_mean(v_instant_pos);
