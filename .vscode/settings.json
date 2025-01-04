@@ -1,0 +1,36 @@
+{
+    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
+    "makefile.configurations": [
+        {
+            "name": "10_1",
+            "makeDirectory": "${workspaceFolder}/eser_10/10_1",
+            "problemMatchers": [
+                "$gcc"
+            ]
+        },
+        {
+            "name": "5_1",
+            "makeDirectory": "eser_5/5_1",
+            "problemMatchers": [
+                "$gcc"
+            ]
+        },
+        {
+            "name": "NSL_SIMULATOR",
+            "makeDirectory": "NSL_SIMULATOR/SOURCE",
+            "problemMatchers": [
+                "$gcc"
+            ]
+        },
+        
+    ],
+    "files.associations": {
+        "functional": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "ranges": "cpp",
+        "span": "cpp",
+        "iosfwd": "cpp",
+        "fstream": "cpp"
+    }
+}
