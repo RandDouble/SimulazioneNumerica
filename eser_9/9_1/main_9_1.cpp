@@ -12,14 +12,14 @@
 #include "random.h"
 #include "utilities.h"
 
-constexpr std::size_t SIZE = 32;
+constexpr std::size_t SIZE = 32; // Points to visit
 constexpr std::size_t POP_SIZE = 10000;
+constexpr std::size_t HALF_POP_SIZE = POP_SIZE / 2;
 constexpr std::size_t N_GEN_CIRCLE = 100;
-constexpr std::size_t N_GEN_SQUARE = 200;
+constexpr std::size_t N_GEN_SQUARE = 100;
 constexpr double SELECTOR_COEFF = -.4;
 
 constexpr double CROSSOVER_PROB = 0.65;
-// constexpr double MUTATION_PROB = 0.0;
 constexpr double SWAP_PROB = 0.05;
 constexpr double SHIFT_PROB = 0.05;
 constexpr double PERMUTATE_PROB = 0.05;
@@ -27,6 +27,7 @@ constexpr double INVERSE_PROB = 0.05;
 
 int main()
 {
+#pragma region INITIALIZATION
     Random rng;
     initializer(rng);
 
@@ -70,22 +71,35 @@ int main()
         std::cout << "Cost is : " << pop.cost(circle_positions) << '\n';
     }
 
+#pragma endregion INITIALIZATION
+
+#pragma region CIRCLE_OPTIMIZATION
+
     std::cout << "Starting Circle Optimization\n\n";
 
     // Using Genetic Algorithm
+    std::ofstream foff("cost_circle.csv");
+    foff << "Gen,Best,Average_on_half\n";
 
     for (size_t i = 0; i < N_GEN_CIRCLE; i++)
     {
         population.new_gen(rng);
         population.sort_population(circle_positions);
         std::cout << "Best is : " << population.begin()->cost(circle_positions) << '\n';
+        double average_on_half = std::reduce(population.begin(), population.begin() + HALF_POP_SIZE, 0.,
+                                             [&circle_positions](double acc, const Individual<SIZE> &el) {
+                                                 return acc + el.cost(circle_positions);
+                                             }) /
+                                 HALF_POP_SIZE;
+        foff << i << ',' << population.begin()->cost(circle_positions) << ',' << average_on_half << '\n';
     }
+    foff.close();
 
     // Printing best circle configuration
 
     population.begin()->print_DNA();
 
-    std::ofstream foff("best_config_circle.csv");
+    foff.open("best_config_circle.csv");
 
     foff << "x,y\n";
 
@@ -95,6 +109,10 @@ int main()
     }
 
     foff.close();
+
+#pragma endregion CIRCLE_OPTIMIZATION
+
+#pragma region SQUARE_OPTIMIZATION
 
     // square test
     std::cout << "Starting Square Test\n";
@@ -120,12 +138,22 @@ int main()
 
     // Using Genetic Algorithm
 
+    foff.open("cost_square.csv");
+    foff << "Gen,Best,Average_on_half\n";
     for (size_t i = 0; i < N_GEN_SQUARE; i++)
     {
+        population.new_gen(rng);
         population.sort_population(square_positions);
         std::cout << "Best is : " << population.begin()->cost(square_positions) << '\n';
-        population.new_gen(rng);
+        double average_on_half = std::reduce(population.begin(), population.begin() + HALF_POP_SIZE, 0.,
+                                             [&square_positions](double acc, const Individual<SIZE> &el) {
+                                                 return acc + el.cost(square_positions);
+                                             }) /
+                                 HALF_POP_SIZE;
+        foff << i << ',' << population.begin()->cost(square_positions) << ',' << average_on_half << '\n';
+
     }
+    foff.close();
 
     // Printing best square configuration
     population.sort_population(square_positions);
@@ -143,6 +171,8 @@ int main()
     }
 
     foff.close();
+
+#pragma endregion SQUARE_OPTIMIZATION
 
     return 0;
 }
