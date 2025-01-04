@@ -1,5 +1,4 @@
 lib
-.vscode
 .ipynb_checkpoints
 **/obj
 *.exe
