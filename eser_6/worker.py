@@ -8,8 +8,8 @@ import numpy as np
 
 # Program Constants
 
-TEMP_MIN: float = 0.5
-TEMP_MAX: float = 2.0
+TEMP_MIN: float = 0.25
+TEMP_MAX: float = 3.0
 TEMP_STEP: int = 50
 
 
@@ -28,7 +28,7 @@ INPUT_CONFIG_PATH = Path("../INPUT")
 OUTPUT_CONFIG_PATH = Path("../OUTPUT")
 OUTPUT_RESULT_PATH = Path("../../eser_6/output")
 
-INPUT_CONFIG_PATH_FILE = INPUT_CONFIG_PATH / Path("input.dat")
+INPUT_CONFIG_PATH_FILE = INPUT_CONFIG_PATH / "input.dat"
 
 
 @dataclass
@@ -89,6 +89,9 @@ def check_directories() -> bool:
 
     return can_run
 
+def prepare_properties() -> None:
+    shutil.copy('../../eser_6/properties.dat', INPUT_CONFIG_PATH / 'properties.dat')
+
 
 def launch_program() -> subprocess.CompletedProcess:
     print("Launching Program")
@@ -108,7 +111,7 @@ def move_output(conf: Config, input_dir: Path, output_dir: Path) -> None:
     )
     for file in input_dir.iterdir():
         if file.is_file():
-            (output_dir / conf_out).mkdir(exist_ok=True)
+            (output_dir / conf_out).mkdir(exist_ok=True, parents=True)
             shutil.copy(file, output_dir / conf_out)
 
 
@@ -128,6 +131,7 @@ def main():
         n_blocks=20,
         n_steps=20000,
     )
+    prepare_properties()
 
     start_time = perf_counter()
     counter_success = 0
