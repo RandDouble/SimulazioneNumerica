@@ -120,7 +120,7 @@ public:                                                               // Functio
     bool metro(const unsigned int part);                              // Perform Metropolis acceptance-rejection step
 
     double pbc(const double position, const unsigned int i); // Apply periodic boundary conditions for coordinates
-    int pbc(const unsigned int i);                           // Apply periodic boundary conditions for spins
+    int pbc(const int i);                           // Apply periodic boundary conditions for spins
     arma::vec3 pbc(const arma::vec3& position);              // Apply periodic boundary conditions for vectors
     arma::vec3 particle_distance(const arma::vec3& first, const arma::vec3& second);
     double particle_distance_squared(const arma::vec3& first, const arma::vec3& second);

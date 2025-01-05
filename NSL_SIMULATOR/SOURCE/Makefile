@@ -2,6 +2,7 @@ CXXFLAGS = -O3 --std=c++17 -pedantic\
 		 -Wall -Wextra -Werror\
 		 -march=native -flto\
 		 -fopenmp\
+		 -g\
 		 -ffast-math -DNDEBUG
 
 AFLAGS = -larmadillo
