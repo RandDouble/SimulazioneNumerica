@@ -1034,7 +1034,7 @@ void System::measure()
     }
 
     // TOTAL ENERGY (kinetic+potential) //////////////////////////////////////////
-    if (_measure.tenergy)
+    if (_measure.tenergy || _measure.cv)
     {
         switch (_sim_type)
         {
@@ -1044,16 +1044,14 @@ void System::measure()
             break;
         case SimType::ISING_MRT2:
         case SimType::GIBBS:
-            double s_i, s_j;
 #pragma omp parallel for reduction(+ : tenergy_temp)
             for (unsigned int i = 0; i < _npart; i++)
             {
-                s_i = double(_particle(i).get_spin());
-                s_j = double(_particle(this->pbc(i + 1)).get_spin());
+                const double s_i = static_cast<double>(_particle(i).get_spin());
+                const double s_j = static_cast<double>(_particle(this->pbc(i + 1)).get_spin());
                 tenergy_temp += -_J * s_i * s_j - 0.5 * _H * (s_i + s_j);
             }
-            tenergy_temp /= double(_npart);
-            _measurement(_measure.idx_tenergy) = tenergy_temp;
+            _measurement(_measure.idx_tenergy) = tenergy_temp / static_cast<double>(_npart);
             break;
         }
     }
@@ -1077,12 +1075,12 @@ void System::measure()
     // MAGNETIZATION /////////////////////////////////////////////////////////////
     // TO BE FIXED IN EXERCISE 6
 
-    if (_measure.magnet)
+    if (_measure.magnet || _measure.chi)
     {
 #pragma omp parallel for reduction(+ : magnetization)
         for (unsigned int i = 0; i < _npart; i++)
         {
-            magnetization += double(_particle(i).get_spin());
+            magnetization += static_cast<double>(_particle(i).get_spin());
         }
 
         magnetization /= static_cast<double>(_npart);
@@ -1095,7 +1093,7 @@ void System::measure()
     {
         // Saving total energy squared. The Mean calculation will happen in
         // System::averages.
-        const double tenergy_squared = (tenergy_temp * _npart) * (tenergy_temp * _npart);
+        const double tenergy_squared = tenergy_temp * tenergy_temp;
         _measurement(_measure.idx_cv) = tenergy_squared;
     }
 
@@ -1103,12 +1101,8 @@ void System::measure()
     // TO BE FIXED IN EXERCISE 6
     if (_measure.chi)
     {
-        // double chi_temp = magnetization * magnetization * _beta /
-        // static_cast<double>(_npart); // this Somehow functions... lets try calcultion
-        // explicitly
 
         double temp_chi = magnetization * magnetization * _npart;
-        // _measurement(_measure.idx_chi) = chi_temp;
         _measurement(_measure.idx_chi) = temp_chi;
     }
 
@@ -1249,7 +1243,7 @@ void System::averages(const int blk)
 
     if (_measure.cv)
     {
-        auto beta_squared = _beta * _beta;
+        const double beta_squared = _beta * _beta;
         auto tenergy_renorm_squared = _average(_measure.idx_tenergy) * _npart;
         tenergy_renorm_squared *= tenergy_renorm_squared;
 
