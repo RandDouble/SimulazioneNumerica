@@ -1,13 +1,13 @@
 {
-    "number_of_generations" : 100,
-    "population_size" : 500,
-    "number_of_contacts" : 15,
-    "n_transfer_elements" : 5,
-    "initial_shuffling" : 300,
-    "selection_coeff" : -0.75,
-    "crossover_probability" : 0.6,
-    "swap_probability" : 0.1,
-    "permutate_probability" : 0.1,
-    "inverse_probability" : 0.1,
-    "shift_probability" : 0.1
+    "number_of_generations": 100,
+    "population_size": 500,
+    "number_of_contacts": 15,
+    "n_transfer_elements": 5,
+    "initial_shuffling": 300,
+    "selection_coeff": -0.75,
+    "crossover_probability": 0.6,
+    "swap_probability": 0.1,
+    "permutate_probability": 0.1,
+    "inverse_probability": 0.1,
+    "shift_probability": 0.1
 }

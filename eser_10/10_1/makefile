@@ -79,12 +79,13 @@ clean:
 exec: all
 	mpiexec -n 4 ./$(PROGNAME)
 	mkdir -p ../results/multi_thread/
-	mv gen_report_thread_*.csv ../results/multi_thread/
-	mv best_route.csv ../results/multi_thread/
+	mv ../output/* ../results/multi_thread/
+# mv ../results/best_route.csv ../results/multi_thread/
 
 .PHONY: exec_single
 exec_single: all
 	mpiexec -n 1 ./$(PROGNAME)
-	mkdir -p ../results/
-	mv gen_report_thread_0.csv ../results/gen_report_single_thread.csv
-	mv best_route.csv ../results/best_route_single_thread.csv
+	mkdir -p ../results/single_thread
+	mv ../output/* ../results/single_thread/
+
+# mv ../results/best_route.csv ../results/single_thread/best_route_single_thread.csv

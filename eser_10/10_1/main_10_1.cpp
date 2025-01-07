@@ -1,6 +1,7 @@
 #include "mpi.h"
 
 #include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -19,6 +20,8 @@
 
 #define MASTER 0
 #define N_PROV 110
+
+namespace fs = std::filesystem;
 
 // I Hate a little bit to use Macro Constants, they are error-prone, generally unsafe
 // and have no type or compile checking, but in this case they can be useful..
@@ -63,6 +66,21 @@ int main(int argc, char *argv[])
     std::vector<arma::vec2> prov_pos;
     std::vector<std::string> prov_name;
 
+#pragma region OUTPUT_PREPARATION
+    fs::path output("../output");
+    // Create output directory
+    if (rank == MASTER)
+        fs::create_directory(output);
+
+    const std::string gen_report_name("gen_report_thread_" + std::to_string(rank) + ".csv");
+    const std::string best_route_name("best_route.csv");
+
+    std::ofstream gen_report(output / gen_report_name);
+    gen_report << "Generation,Cost,Sequence\n";
+
+#pragma endregion OUTPUT_PREPARATION
+
+#pragma region GENETIC_ALGORITHM_PREPARATION
     // Loading configuration
     std::ifstream fin("input.json");
     nlohmann::json data = nlohmann::json::parse(fin);
@@ -136,9 +154,9 @@ int main(int argc, char *argv[])
 
     std::printf("Rank %d => Population initialized, RNG initialized\nStarting Evolution\n", rank);
 
-    std::ofstream gen_report("gen_report_thread_" + std::to_string(rank) + ".csv");
-    gen_report << "Generation,Cost,Sequence\n";
+#pragma endregion GENETIC_ALGORITHM_PREPARATION
 
+#pragma region EVOLUTION
     population.sort_population(distance_matrix);
     // Evolution
     for (size_t n = 0; n < evol_params.N_CONTACTS; n++)
@@ -227,6 +245,9 @@ int main(int argc, char *argv[])
 
     std::printf("Rank %d => Evolution Ended\nBest is : %f\n", rank, population.begin()->cost(distance_matrix));
 
+#pragma endregion EVOLUTION
+
+#pragma region FINAL_REPORT
     // Getting Best of each continent comparing and then outputting best of all
 
     Population<N_PROV> best_pop((rank == MASTER) ? size : 0);
@@ -269,7 +290,7 @@ int main(int argc, char *argv[])
         // std::cout << "Rank :" << std::setw(3) << rank << ": Best Calculated\n"
         //           << "Start Writing\n";
 
-        std::ofstream foff("best_route.csv");
+        std::ofstream foff(output / best_route_name);
 
         if (!foff)
         {
@@ -288,9 +309,9 @@ int main(int argc, char *argv[])
         }
         foff.close();
         std::printf("Rank %d => Absolute best is : %f\n", rank, best.cost(distance_matrix));
-        // std::cout << "Rank : " << std::setw(3) << rank
-        //           << " : Absolute best is : " << best.cost(distance_matrix) << '\n';
     }
+
+#pragma endregion FINAL_REPORT
 
     MPI_Finalize();
     return 0;
