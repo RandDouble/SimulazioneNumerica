@@ -12,9 +12,9 @@ EXTERNAL_HEADER_FILE = json.hpp
 # Compiler and compiler flags
 CXX = mpicxx # Change this line to change compiler
 
-CPPFLAGS = -I../../src -I../../external_include
-CXXFLAGS = -Wall -Wextra -g -O3 -std=c++17 -pedantic
-LDFLAGS = -larmadillo
+CPPFLAGS += -I../../src -I../../external_include
+CXXFLAGS += -Wall -Wextra -g -O3 -std=c++17 -pedantic -march=native -DNDEBUG
+LDFLAGS += -larmadillo
 
 # O2 because it can show more warning due to flow variable analisys
 # c++19 because it has some niceties, like in better algorithm and numeric, enabling parallelism
@@ -77,7 +77,7 @@ clean:
 .PHONY: exec
 
 exec: all
-	mpiexec -n 4 ./$(PROGNAME)
+	mpiexec -n 6 ./$(PROGNAME)
 	mkdir -p ../results/multi_thread/
 	mv ../output/* ../results/multi_thread/
 # mv ../results/best_route.csv ../results/multi_thread/

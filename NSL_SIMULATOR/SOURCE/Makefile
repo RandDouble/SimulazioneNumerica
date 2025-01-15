@@ -1,17 +1,18 @@
-CXXFLAGS = -O3 --std=c++17 -pedantic\
+CXXFLAGS += -O3 --std=c++17 -pedantic\
 		 -Wall -Wextra -Werror\
 		 -march=native -flto\
 		 -fopenmp\
 		 -g\
 		 -ffast-math -DNDEBUG
 
-AFLAGS = -larmadillo
+AFLAGS += -larmadillo
 
 # Choosing some option for different compilers
 
 ifeq ($(COMPILER), CLANG_LIBCPP)
 	CC = clang++-19
-	CXXFLAGS+= -stdlib=libc++ -fexperimental-library
+	CXXFLAGS+= --start-no-unused-arguments -rtlib=compiler-rt -DLIBCXX_USE_COMPILER_RT=YES -DLIBCXXABI_USE_COMPILER_RT=YES --end-no-unused-arguments\
+			   -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
 	CC = clang++-19
 	CXXFLAGS += -stdlib=libstc++
@@ -21,7 +22,8 @@ else ifeq ($(COMPILER), GNU)
 	AFLAGS += -ltbb
 else # Defaults to CLANG_LIBCPP
 	CC = clang++-19
-	CXXFLAGS+= -stdlib=libc++ -fexperimental-library
+	CXXFLAGS+= --start-no-unused-arguments -rtlib=compiler-rt -DLIBCXX_USE_COMPILER_RT=YES -DLIBCXXABI_USE_COMPILER_RT=YES --end-no-unused-arguments\
+			   -stdlib=libc++ -fexperimental-library
 endif
 
 ifeq ($(USE_MKL), 1)

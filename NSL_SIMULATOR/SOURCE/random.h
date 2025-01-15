@@ -25,7 +25,7 @@ class Random
 {
 
 private:
-    const uint64_t m_tot{34522712143931ull};
+    const uint64_t m_multiplier{34522712143931ull};
     uint64_t l_tot, n_tot;
 
 protected:

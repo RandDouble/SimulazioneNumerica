@@ -13,9 +13,10 @@
             "configurationProvider": "ms-vscode.makefile-tools"
         },
         {
-            "name" : "MPI-Linux",
+            "name": "MPI-Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/src/*"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/mpicxx",

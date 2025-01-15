@@ -23,12 +23,14 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 // {
 class Random
 {
+public:
+    using result_type = uint64_t;
 
 private:
-    const uint64_t m_tot{34522712143931ull};
-    uint64_t l_tot, n_tot;
+    static constexpr result_type m_multiplier = 34522712143931ull;
+    result_type l_tot, n_tot;
+    static constexpr result_type m_modulus = (1ull << 48);
 
-protected:
 public:
     // constructors
     Random() = default;
@@ -36,21 +38,20 @@ public:
     ~Random() = default;
 
     // Method to initialize the RNG
-    void Initializer(const std::string& seed_file = "seed.in",
-                     const std::string& prime_file = "Primes",
+    void Initializer(const std::string &seed_file = "seed.in", const std::string &prime_file = "Primes",
                      const std::size_t rows_to_skip = 0ull);
     // Method to set the seed for the RNG
-    void SetRandom(int*, int, int);
+    void SetRandom(int *, int, int);
     // Method to save the seed to a file
-    void SaveSeed(const std::string& filename = "seed.out") const;
+    void SaveSeed(const std::string &filename = "seed.out") const;
     // Method to generate a random number in the range [0,1)
     double Rannyu(void);
     // Method to generate a random number in the range [min,max)
     double Rannyu(const double min, const double max);
     // Method to generate random integers in range [0 , 2**48)
-    uint64_t Ranint();
+    result_type Ranint();
     // Method to generate random integers in range [min, max)]
-    uint64_t Ranint(const uint64_t min, const uint64_t max);
+    result_type Ranint(const uint64_t min, const uint64_t max);
     // Method to generate a random number with a Gaussian distribution
     double Gauss(const double mean, const double sigma);
     // Method to generate a random number with an Exponential distribution
@@ -58,16 +59,27 @@ public:
     // Method to generate a random number with a Lorentian distribution
     double Lorenztian(const double x_0, const double gamma);
     // Method Accept Reject for extreme case
-    double AcceptReject(const double a,
-                        const double b,
-                        const double max,
-                        std::function<double(double)>& PDF);
-    double AcceptReject(const double a,
-                        const double b,
-                        const double max,
-                        const std::function<double(double)>& PDF);
+    double AcceptReject(const double a, const double b, const double max, std::function<double(double)> &PDF);
+    double AcceptReject(const double a, const double b, const double max, const std::function<double(double)> &PDF);
     // Method with inverse cumulative
-    double ExternalInvCum(std::function<double(double)>& ICDF);
+    double ExternalInvCum(std::function<double(double)> &ICDF);
+
+    // uint64_t operator()(const uint64_t max) { return Ranint(0ull, max); }
+    // uint64_t operator()(const uint64_t min, const uint64_t max) { return Ranint(min, max); }
+    // double operator()(const double min, const double max) { return Rannyu(min, max); }
+
+    result_type operator()()
+    {
+        return Ranint();
+    }
+    static constexpr result_type min()
+    {
+        return 0ull;
+    }
+    static constexpr result_type max()
+    {
+        return (m_modulus - 1);
+    }
 };
 
 // }

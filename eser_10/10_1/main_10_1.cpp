@@ -12,16 +12,17 @@
 
 #include <json.hpp>
 
-#include "initializer.h"
-#include "population.h"
-
-#include "random.h"
-#include "utilities.h"
+#include <initializer.h>
+#include <population.h>
+#include <random.h>
+#include <utilities.h>
 
 #define MASTER 0
 #define N_PROV 110
 
 namespace fs = std::filesystem;
+#define __POP_TYPE MPI_UINT8_T
+using population_type = uint8_t;
 
 // I Hate a little bit to use Macro Constants, they are error-prone, generally unsafe
 // and have no type or compile checking, but in this case they can be useful..
@@ -51,6 +52,11 @@ struct Mutation_Probabilities
 arma::mat load_distance_matrix(const int rank, std::vector<arma::vec2> &prov_pos, std::vector<std::string> &prov_name);
 
 void communicate_distance_matrix(const int rank, arma::mat &dist_mat);
+void old_contact(const int rank, const int size, Population<N_PROV> &population,
+                 const Evolution_Parameters &evol_params, const arma::mat &distance_matrix);
+
+void new_contact(const int rank, const int size, Population<N_PROV> &population,
+                 const Evolution_Parameters &evol_params, Random &rng, const arma::mat &distance_matrix);
 
 int main(int argc, char *argv[])
 {
@@ -138,10 +144,9 @@ int main(int argc, char *argv[])
     population.shift_prop(probs.shift_prob);
 
     // Checking for health
-    for (auto &pop : population)
-    {
-        assert(pop.check_health() && "Found ill vector\n");
-    }
+
+    assert(std::all_of(population.begin(), population.end(), [](const auto &el) { return el.check_health(); }) &&
+           "All population is ill\n");
 
     // Initial shuffling
     for (auto &element : population)
@@ -157,10 +162,10 @@ int main(int argc, char *argv[])
 #pragma endregion GENETIC_ALGORITHM_PREPARATION
 
 #pragma region EVOLUTION
-    population.sort_population(distance_matrix);
     // Evolution
     for (size_t n = 0; n < evol_params.N_CONTACTS; n++)
     {
+        population.sort_population(distance_matrix);
         for (size_t i = 0; i < evol_params.N_GEN; i++)
         {
 
@@ -177,50 +182,14 @@ int main(int argc, char *argv[])
             gen_report << "\"\n";
         }
 
-        // Transfering Best of each continent to all other continents
-        auto initial_pos = population.begin();
-        std::vector<uint8_t> best_el(initial_pos->size() * evol_params.N_TRANSFER_ELEMENTS);
-
-        for (size_t i = 0; i < evol_params.N_TRANSFER_ELEMENTS; i++)
-        {
-            for (size_t j = 0; j < initial_pos->size(); j++)
-            {
-                best_el[i * N_PROV + j] = (*(initial_pos + i))[j];
-            }
-        }
-
-        std::vector<uint8_t> receiver(initial_pos->size() * evol_params.N_TRANSFER_ELEMENTS * size);
-
-        // Contact between continents
-        MPI_Allgather(best_el.data(), best_el.size(), MPI_UINT8_T, receiver.data(), best_el.size(), MPI_UINT8_T,
-                      MPI_COMM_WORLD);
-
-        auto copying_pos = population.end() - (evol_params.N_TRANSFER_ELEMENTS * (size - 1));
-        size_t counter = 0;
-
-        for (size_t provenience = 0; provenience < static_cast<size_t>(size); provenience++)
-        {
-            if (provenience == static_cast<size_t>(rank)) // Do not copy your datas
-            {
-                continue;
-            }
-
-            // copy elements from Individual i-th come from provenience-th rank
-            for (size_t i = 0; i < evol_params.N_TRANSFER_ELEMENTS; i++)
-            {
-                for (size_t j = 0; j < copying_pos->size(); j++)
-                {
-                    (*(copying_pos + counter * evol_params.N_TRANSFER_ELEMENTS + i))[j] =
-                        receiver[counter * N_PROV * evol_params.N_TRANSFER_ELEMENTS + i * N_PROV + j];
-                }
-            }
-            counter++;
-        }
-
-        population.sort_population(distance_matrix);
+        // old_contact(rank, size, population, evol_params, distance_matrix);
+        new_contact(rank, size, population, evol_params, rng, distance_matrix);
         // std::cout << '\n'
         //           << "Transferring Complete\n";
     }
+
+    // After last contact population is unsorted
+    population.sort_population(distance_matrix);
 
     // Last independent Evolution before final results
     for (size_t i = 0; i < evol_params.N_GEN; i++)
@@ -264,8 +233,8 @@ int main(int argc, char *argv[])
         // ss << " : Sending my best\n";
     }
 
-    MPI_Gather(population.begin()->data(), N_PROV, MPI_UINT8_T, recv_best_vec.data(), population.begin()->size(),
-               MPI_UINT8_T, MASTER, MPI_COMM_WORLD);
+    MPI_Gather(population.begin()->data(), N_PROV, __POP_TYPE, recv_best_vec.data(), population.begin()->size(),
+               __POP_TYPE, MASTER, MPI_COMM_WORLD);
 
     if (rank == MASTER)
     {
@@ -390,6 +359,130 @@ void communicate_distance_matrix(const int rank, arma::mat &distance_matrix)
             for (unsigned j = 0; j < N_PROV; j++)
             {
                 distance_matrix(i, j) = data_transfer[i * N_PROV + j];
+            }
+        }
+    }
+}
+
+void old_contact(const int rank, const int size, Population<N_PROV> &population,
+                 const Evolution_Parameters &evol_params, const arma::mat &distance_matrix)
+{
+    // Need population sorted before doing anything else.
+    population.sort_population(distance_matrix);
+    // Transfering Best of each continent to all other continents
+    auto initial_pos = population.begin();
+    std::vector<uint8_t> best_el(initial_pos->size() * evol_params.N_TRANSFER_ELEMENTS);
+
+    for (size_t i = 0; i < evol_params.N_TRANSFER_ELEMENTS; i++)
+    {
+        for (size_t j = 0; j < initial_pos->size(); j++)
+        {
+            best_el[i * N_PROV + j] = (*(initial_pos + i))[j];
+        }
+    }
+
+    std::vector<uint8_t> receiver(initial_pos->size() * evol_params.N_TRANSFER_ELEMENTS * size);
+
+    // Contact between continents
+    MPI_Allgather(best_el.data(), best_el.size(), __POP_TYPE, receiver.data(), best_el.size(), __POP_TYPE,
+                  MPI_COMM_WORLD);
+
+    auto copying_pos = population.end() - (evol_params.N_TRANSFER_ELEMENTS * (size - 1));
+    size_t counter = 0;
+
+    for (size_t provenience = 0; provenience < static_cast<size_t>(size); provenience++)
+    {
+        if (provenience == static_cast<size_t>(rank)) // Do not copy your datas
+        {
+            continue;
+        }
+
+        // copy elements from Individual i-th come from provenience-th rank
+        for (size_t i = 0; i < evol_params.N_TRANSFER_ELEMENTS; i++)
+        {
+            for (size_t j = 0; j < copying_pos->size(); j++)
+            {
+                (*(copying_pos + counter * evol_params.N_TRANSFER_ELEMENTS + i))[j] =
+                    receiver[counter * N_PROV * evol_params.N_TRANSFER_ELEMENTS + i * N_PROV + j];
+            }
+        }
+        counter++;
+    }
+}
+
+void new_contact(const int rank, const int size, Population<N_PROV> &population,
+                 const Evolution_Parameters &evol_params, Random &rng, const arma::mat &distance_matrix)
+{
+    // No exchange is possible if pool size is 1
+    if (size == 1 || evol_params.N_TRANSFER_ELEMENTS == 0)
+    {
+        return;
+    }
+
+    // Need population sorted before doing anything else.
+    population.sort_population(distance_matrix);
+
+    // Choosing Random exchange
+    std::vector<int> exchange_ranks(size, 0);
+    if (rank == MASTER)
+    {
+        std::iota(exchange_ranks.begin(), exchange_ranks.end(), 0);
+        std::shuffle(exchange_ranks.begin(), exchange_ranks.end(), rng);
+    }
+
+    // Broadcasting Exchange Setting
+    MPI_Bcast(exchange_ranks.data(), exchange_ranks.size(), MPI_INT, MASTER, MPI_COMM_WORLD);
+
+    assert(!std::all_of(exchange_ranks.begin(), exchange_ranks.end(), [](int el) { return el == 0; }) &&
+           "Broadcast of exchange order failed");
+
+    // std::stringstream received_string;
+    // received_string <<  "Rank " << std::to_string(rank) << " => Sequence Received ";
+    // for (auto &el : exchange_ranks)
+    // {
+    //     received_string << el << ' ';
+    // }
+    // received_string << '\n';
+
+    // printf(received_string.str().c_str());
+
+    // printf("Rank %d => Exchange with %d\n", rank, exchange_ranks[rank]);
+
+    // Transfering Best of each continent to all other continents
+    MPI_Request request;
+    const auto initial_pos = population.begin();
+
+    // Do not send the message to yourself
+    if (exchange_ranks[rank] != rank)
+    {
+        std::vector<uint8_t> best_el(initial_pos->size() * evol_params.N_TRANSFER_ELEMENTS);
+
+        /* Insert choosing the best */
+        for (size_t i = 0; i < evol_params.N_TRANSFER_ELEMENTS; i++)
+        {
+            for (size_t j = 0; j < initial_pos->size(); j++)
+            {
+                best_el[i * N_PROV + j] = (*(initial_pos + i))[j];
+            }
+        }
+
+        MPI_Isend(best_el.data(), best_el.size(), __POP_TYPE, exchange_ranks[rank], 0, MPI_COMM_WORLD, &request);
+       
+       
+        std::vector<uint8_t> receiver(initial_pos->size() * evol_params.N_TRANSFER_ELEMENTS);
+        const int sender_rank =
+            std::distance(exchange_ranks.begin(), std::find(exchange_ranks.begin(), exchange_ranks.end(), rank));
+        assert(sender_rank < size && sender_rank >= 0 && "Sender Rank not found");
+        
+        MPI_Recv(receiver.data(), receiver.size(), __POP_TYPE, sender_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Wait(&request, MPI_STATUS_IGNORE);
+
+        // Migration of best elements
+        for (size_t i = 0; i < evol_params.N_TRANSFER_ELEMENTS; i++)
+        {
+            for (size_t j = 0; j < initial_pos->size(); j++)
+            {
+                (*(initial_pos + i))[j] = receiver[i * N_PROV + j];
             }
         }
     }

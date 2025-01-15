@@ -88,7 +88,7 @@ double Random ::Rannyu(const double min, const double max)
 double Random ::Rannyu(void)
 {
     constexpr double twom48 = 1. / (1ull << 48);
-    l_tot = l_tot * m_tot + n_tot;
+    l_tot = l_tot * m_multiplier + n_tot;
     l_tot &= ((1ull << 48) - 1);
     double r = twom48 * l_tot;
     return r;
@@ -164,7 +164,7 @@ double Random::ExternalInvCum(std::function<double(double)>& ICDF)
 
 uint64_t Random::Ranint()
 {
-    l_tot = l_tot * m_tot + n_tot;
+    l_tot = l_tot * m_multiplier + n_tot;
     l_tot &= ((1ull << 48) - 1);
     uint64_t r = l_tot;
     return r;
