@@ -8,7 +8,7 @@ DEPS:= eser_1/1_1/main_1_1.exe\
 	eser_5/5_1/main_5_1.exe\
 	eser_8/8_2/main_8_2.exe\
 	eser_9/9_1/main_9_1.exe\
-	eser_10/10_1/main_10_1.exe\
+	eser_10/10_1/main_10_1.exe
 
 
 # Set COMPILER to choose a compiler platform,
@@ -17,7 +17,7 @@ DEPS:= eser_1/1_1/main_1_1.exe\
 # - CLANG_GNUCPP to compiler with clang-19 and listdc++
 # - GNU to compiler with g++
 
-COMPILER=CLANG_LIBCPP
+COMPILER=CLANG_GNUCPP
 export COMPILER
 
 .PHONY: all

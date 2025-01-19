@@ -23,7 +23,7 @@ ifeq ($(COMPILER), CLANG_LIBCPP) # Only because it support c++20 needed for othe
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
 	CXX = clang++-19
-	CXXFLAGS += -stdlib=libstc++
+	CXXFLAGS += -stdlib=libstdc++
 	LDFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
 	CXX = g++

@@ -7,11 +7,14 @@
 #ifndef __POPULATION__
 #define __POPULATION__
 
-template <std::size_t SIZE> class Population
+template <std::size_t SIZE, typename POP_TYPE = uint8_t> class Population
 {
+public:
+    using individual = Individual<SIZE, POP_TYPE>;
+
 private:
-    std::vector<Individual<SIZE>> m_pop;
-    std::vector<Individual<SIZE>> m_old_gen;
+    std::vector<individual> m_pop;
+    std::vector<individual> m_old_gen;
     double m_swap_prob{0.2}, m_shift_prob{0.1}, m_permutate_prob{0.1}, m_invers_prob{0.1}, m_crossover_prob{0.6};
     double m_selection_coeff{-.5};
 
@@ -36,11 +39,11 @@ public:
     {
         ;
     }
-    Population(std::vector<Individual<SIZE>> &vec) : m_pop{vec}, m_old_gen{vec}
+    Population(std::vector<individual> &vec) : m_pop{vec}, m_old_gen{vec}
     {
         ;
     }
-    Population(std::vector<Individual<SIZE>> &&vec) : m_pop{vec}
+    Population(std::vector<individual> &&vec) : m_pop{vec}
     {
         m_old_gen = std::copy(m_pop);
     }
@@ -122,15 +125,17 @@ public:
 
     void sort_population(std::array<arma::vec2, SIZE> &positions)
     {
-        std::stable_sort(m_pop.begin(), m_pop.end(),
-                         [&positions](const Individual<SIZE> &a, const Individual<SIZE> &b) {
-                             return (a.cost(positions) < b.cost(positions));
-                         });
+        assert(m_pop.begin() != m_pop.end() && "Checking if vector is empty\n");
+        std::stable_sort(m_pop.begin(), m_pop.end(), [&positions](const individual &a, const individual &b) {
+            return (a.cost(positions) < b.cost(positions));
+        });
     }
 
     void new_gen(Random &rng)
     {
-        m_old_gen = m_pop;
+        // m_old_gen = m_pop;
+        std::copy(m_pop.begin(), m_pop.end(), m_old_gen.begin());
+
         for (size_t i = 0; i < m_pop.size(); i += 2)
         {
 
@@ -140,10 +145,10 @@ public:
             {
                 idx_father = selection_operator(rng);
             }
-            Individual<SIZE> mother = m_old_gen[idx_mother];
-            Individual<SIZE> father = m_old_gen[idx_father];
-            Individual<SIZE> *son = &(m_pop[i]);
-            Individual<SIZE> *daughter = &(m_pop[i + 1]);
+            individual mother = m_old_gen[idx_mother];
+            individual father = m_old_gen[idx_father];
+            individual *son = &(m_pop[i]);
+            individual *daughter = &(m_pop[i + 1]);
 
             // Pair Permutation
             if (rng.Rannyu() < m_swap_prob)

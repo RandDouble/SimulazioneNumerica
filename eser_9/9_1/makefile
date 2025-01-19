@@ -11,7 +11,7 @@ LOCAL_HEADER_FILE = initializer.h mutation.h population.h swap_functions.h
 # Compiler and compiler flags
 # Default compiler is Clang++-19 with libc++ as standard library implementation
 INCFLAGS= -I../../src
-CXXFLAGS= $(INCFLAGS) -Wall -Wextra -Werror -O3 -ffast-math -march=native -std=c++17 -fopenmp -DUSE_PARALLEL
+CXXFLAGS= $(INCFLAGS) -Wall -Wextra -Werror -O3 -ffast-math -march=native -std=c++17 -fopenmp -DUSE_PARALLEL -DNDEBUG
 LDFLAGS = -larmadillo
 # O2 because it can show more warning due to flow variable analisys
 # c++19 because it has some niceties, like in better algorithm and numeric, enabling parallelism
@@ -21,7 +21,7 @@ ifeq ($(COMPILER), CLANG_LIBCPP) # Only because it support c++20 needed for othe
 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
 	CXX = clang++-19
-	CXXFLAGS += -stdlib=libstdc++
+	CXXFLAGS  += -stdlib=libstdc++
 	LDFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
 	CXX = g++
@@ -49,7 +49,8 @@ all : $(PROGNAME)
 test: test_permutations.exe
 
 test_permutations.exe: test_permutations.cpp $(HEAD) $(OBJ)
-	$(CXX) -o $@ $< -g -Wall -Wextra -std=c++17 -stdlib=libc++ -fexperimental-library -I../../src $(LDFLAGS) $(OBJ)
+	$(CXX) -o $@ $< -g -Og -Wall -Wextra -std=c++17  -I../../src $(LDFLAGS) $(OBJ) -D TEST_PERMUTATION
+# -stdlib=libc++  -fexperimental-library -fexperimental-library
 
 $(PROGNAME): $(MAIN) $(OBJ) $(HEAD)
 	$(CXX) -o $@ $(CXXFLAGS) $< $(OBJ) $(LDFLAGS)

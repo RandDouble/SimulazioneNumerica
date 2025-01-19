@@ -11,6 +11,7 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <cstdint>
 #include <fstream>
 #include <functional>
 #include <iostream>

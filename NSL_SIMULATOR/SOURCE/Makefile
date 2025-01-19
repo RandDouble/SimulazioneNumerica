@@ -15,7 +15,7 @@ ifeq ($(COMPILER), CLANG_LIBCPP)
 			   -stdlib=libc++ -fexperimental-library
 else ifeq ($(COMPILER), CLANG_GNUCPP)
 	CC = clang++-19
-	CXXFLAGS += -stdlib=libstc++
+	CXXFLAGS += -stdlib=libstdc++
 	AFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
 	CC = g++

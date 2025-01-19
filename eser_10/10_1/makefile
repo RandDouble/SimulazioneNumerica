@@ -27,7 +27,6 @@ LDFLAGS += -larmadillo
 # 	CXXFLAGS += -stdlib=libc++ -fexperimental-library
 # else ifeq ($(COMPILER), CLANG_GNUCPP)
 # 	CXX = clang++-19
-# 	CXXFLAGS += -stdlib=libstc++
 # 	LDFLAGS += -ltbb
 # else ifeq ($(COMPILER), GNU)
 # 	CXX = g++

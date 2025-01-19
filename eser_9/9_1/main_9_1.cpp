@@ -1,3 +1,4 @@
+#define ARMA_DONT_PRINT_FAST_MATH_WARNING
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -12,7 +13,7 @@
 #include "random.h"
 #include "utilities.h"
 
-constexpr std::size_t SIZE = 32; // Points to visit
+constexpr std::size_t SIZE = 34; // Points to visit
 constexpr std::size_t POP_SIZE = 10000;
 constexpr std::size_t HALF_POP_SIZE = POP_SIZE / 2;
 constexpr std::size_t N_GEN_CIRCLE = 100;
@@ -86,8 +87,8 @@ int main()
         population.new_gen(rng);
         population.sort_population(circle_positions);
         std::cout << "Best is : " << population.begin()->cost(circle_positions) << '\n';
-        double average_on_half = std::reduce(population.begin(), population.begin() + HALF_POP_SIZE, 0.,
-                                             [&circle_positions](double acc, const Individual<SIZE> &el) {
+        double average_on_half = std::accumulate(population.begin(), population.begin() + HALF_POP_SIZE, 0.,
+                                             [&circle_positions](double acc, Individual<SIZE> &el) -> double {
                                                  return acc + el.cost(circle_positions);
                                              }) /
                                  HALF_POP_SIZE;
@@ -145,13 +146,14 @@ int main()
         population.new_gen(rng);
         population.sort_population(square_positions);
         std::cout << "Best is : " << population.begin()->cost(square_positions) << '\n';
-        double average_on_half = std::reduce(population.begin(), population.begin() + HALF_POP_SIZE, 0.,
-                                             [&square_positions](double acc, const Individual<SIZE> &el) {
-                                                 return acc + el.cost(square_positions);
-                                             }) /
-                                 HALF_POP_SIZE;
+        
+        double average_on_half =
+            std::accumulate(population.begin(), population.begin() + HALF_POP_SIZE, 0.,
+                        [&square_positions](const double &acc, const Individual<SIZE> &el) -> double {
+                            return acc + el.cost(square_positions);
+                        }) /
+            HALF_POP_SIZE;
         foff << i << ',' << population.begin()->cost(square_positions) << ',' << average_on_half << '\n';
-
     }
     foff.close();
 

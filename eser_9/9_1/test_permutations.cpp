@@ -259,6 +259,7 @@ template <std::size_t SIZE = SIZE> bool test_crossover()
     Random rng;
     initializer(rng);
 
+    std::cout << "Starting CrossOver Test\n";
     Individual<SIZE> father = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     Individual<SIZE> mother = {0, 9, 8, 7, 6, 5, 4, 3, 2, 1};
     Individual<SIZE> son, daughter;
@@ -283,23 +284,33 @@ template <std::size_t SIZE = SIZE> bool test_crossover()
     std::cout << "Checking Father\n";
     is_correct = is_correct && father.check_health();
     if (!is_correct)
+    {
         std::cout << "Father is BAD\n";
+        father.print_DNA();
+    }
 
     std::cout << "Checking Mother\n";
     is_correct = is_correct && mother.check_health();
     if (!is_correct)
+    {
         std::cout << "Mother is BAD\n";
+        mother.print_DNA();
+    }
 
     std::cout << "Checking Son\n";
     is_correct = is_correct && son.check_health();
     if (!is_correct)
+    {
         std::cout << "Son is BAD\n";
-
+        son.print_DNA();
+    }
     std::cout << "Checking Daughter\n";
     is_correct = is_correct && daughter.check_health();
     if (!is_correct)
+    {
         std::cout << "Daughter is BAD\n";
-
+        daughter.print_DNA();
+    }
     return is_correct;
 }
 

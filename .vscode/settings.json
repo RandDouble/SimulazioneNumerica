@@ -16,6 +16,16 @@
             ]
         },
         {
+            "name": "9_1",
+            "makeDirectory": "eser_9/9_1",
+            "problemMatchers": [
+                "$gcc"
+            ],
+            "makeArgs": [
+                "-DCOMPILER=GNU"
+            ]
+        },
+        {
             "name": "NSL_SIMULATOR",
             "makeDirectory": "NSL_SIMULATOR/SOURCE",
             "problemMatchers": [
