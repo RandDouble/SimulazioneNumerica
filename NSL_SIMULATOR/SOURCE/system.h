@@ -11,6 +11,7 @@ _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 #ifndef __System__
 #define __System__
 
+#define ARMA_DONT_PRINT_FAST_MATH_WARNING
 #include <algorithm>
 #include <armadillo>
 #include <execution>

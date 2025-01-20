@@ -7,6 +7,7 @@
 _/    _/  _/_/_/  _/_/_/_/ email: Davide.Galli@unimi.it
 *****************************************************************
 *****************************************************************/
+#define ARMA_DONT_PRINT_FAST_MATH_WARNING
 
 #include "system.h"
 #include <iostream>

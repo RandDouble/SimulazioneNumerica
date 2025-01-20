@@ -1,9 +1,8 @@
-CXXFLAGS += -O3 --std=c++17 -pedantic\
-		 -Wall -Wextra -Werror\
-		 -march=native -flto\
-		 -fopenmp\
-		 -g\
-		 -ffast-math -DNDEBUG
+CXXFLAGS += -O3 --std=c++17 -pedantic -g \
+		 -Wall -Wextra\
+		 -ffast-math -DNDEBUG -fopenmp -march=native 
+		 #-Werror
+		  # -march=native -flto
 
 AFLAGS += -larmadillo
 
@@ -12,10 +11,10 @@ AFLAGS += -larmadillo
 ifeq ($(COMPILER), CLANG_LIBCPP)
 	CC = clang++-19
 	CXXFLAGS+= --start-no-unused-arguments -rtlib=compiler-rt -DLIBCXX_USE_COMPILER_RT=YES -DLIBCXXABI_USE_COMPILER_RT=YES --end-no-unused-arguments\
-			   -stdlib=libc++ -fexperimental-library
+			   -stdlib=libc++ -fexperimental-library -flto
 else ifeq ($(COMPILER), CLANG_GNUCPP)
 	CC = clang++-19
-	CXXFLAGS += -stdlib=libstdc++
+	CXXFLAGS += -stdlib=libstdc++ -flto
 	AFLAGS += -ltbb
 else ifeq ($(COMPILER), GNU)
 	CC = g++

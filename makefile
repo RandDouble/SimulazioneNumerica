@@ -17,7 +17,7 @@ DEPS:= eser_1/1_1/main_1_1.exe\
 # - CLANG_GNUCPP to compiler with clang-19 and listdc++
 # - GNU to compiler with g++
 
-COMPILER=CLANG_GNUCPP
+COMPILER=GNU
 export COMPILER
 
 .PHONY: all
