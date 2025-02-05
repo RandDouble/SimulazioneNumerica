@@ -1,6 +1,6 @@
 # LSN 2024, esercizi di Stefano Pilosio
 
-Per alcune esigenze personali il mio PC è dotato di [Clang-17](https://clang.llvm.org) e non ho g++, ho verificato con altre macchine un filo meno portatili che tutto il codice compila anche con g++.
+Per alcune esigenze personali il mio PC è dotato di [Clang-19](https://clang.llvm.org) e non ho g++, ho verificato con altre macchine un filo meno portatili che tutto il codice compila anche con g++.
 Altra nota abbastanza rilevante è che tutto il codice usa lo standard [C++17](https://www.iso.org/standard/68564.html), in quanto tale non compila soltanto con C++11.
 Il codice per quanto possibile ha le funzioni commentate seguendo lo standard di [Doxygen](https://www.doxygen.nl).
 
@@ -10,7 +10,7 @@ Usando Clang invece è necessario assicurarsi di star usando libc++ come libreri
 
 Clang fornito da MacOs manca completamente il supporto a una libreria standard parallela... Magari in un futuro scoprirò la bellezza di openmp e migliorerò il codice di conseguenza.
 
-Pertanto, per compilare tutto il codice basta modificare il makefile nella root directory di questo progetto inserendo il compilatore di propria preferenza e scrivere `make`.
+Pertanto, per compilare tutto il codice basta modificare il makefile nella root directory di questo progetto inserendo il compilatore di propria preferenza e scrivere `make`. (Attualmente è impostato per usare g++)
 
 ## Tabella Esercizi Svolti
 
@@ -33,8 +33,8 @@ I titoli dell'esercizio sono dei link ai notebook, invece i link negli elementi 
 
 ### [Esercitazione 4](LSN_Exercises_04.ipynb)
 
-- [ ] [Esercizio 4.1](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
-- [ ] [Esercizio 4.2](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
+- [x] [Esercizio 4.1](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
+- [x] [Esercizio 4.2](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
 
 ### [Esercitazione 5](LSN_Exercises_05.ipynb)
 
@@ -45,15 +45,25 @@ I titoli dell'esercizio sono dei link ai notebook, invece i link negli elementi 
 - [ ] [Esercizio 6.1](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
 
 ### [Esercitazione 7](LSN_Exercises_07.ipynb)
+
 - [x] [Esercizio 7.1](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
 - [x] [Esercizio 7.2](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
 - [x] [Esercizio 7.3](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
-- [ ] [Esercizio 7.4](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
+- [x] [Esercizio 7.4](NSL_SIMULATOR/SOURCE/NSL_SIMULATOR.cpp)
 
 ### [Esercitazione 8](LSN_Exercises_08.ipynb)
 
+- [x] [Esercizio 8.1](eser_8/8_2/main_8_2.cpp)
+- [x] [Esercizio 8.2](eser_8/8_2/main_8_2.cpp)
+
 ### [Esercitazione 9](LSN_Exercises_09.ipynb)
+
+- [x] [Esercizio 9.1](eser_9/9_1/main_9_1.cpp)
+
 ### [Esercitazione 10](LSN_Exercises_10.ipynb)
+
+- [x] [Esercizio 10.1](eser_10/10_1/main_10_1.cpp)
+
 ### [Esercitazione 11](LSN_Exercises_11.ipynb)
 ### [Esercitazione 12](LSN_Exercises_12.ipynb)
 
